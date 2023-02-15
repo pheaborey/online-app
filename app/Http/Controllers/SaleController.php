@@ -9,6 +9,7 @@ use App\Http\Requests;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
+use Carbon\Carbon;
 
 class SaleController extends Controller
 {
@@ -22,7 +23,7 @@ class SaleController extends Controller
         $url = $request->Current_url;
         $values = parse_url($url);
         $host = explode('/sales',$values['path']);//cut end
-        $redirect = $host[0] . "/sales";
+        $redirect = $host[0] . "/sales/create";
 
         $customer_select = $request->Customer_select;
         if($customer_select != 'new_customer'){
@@ -30,8 +31,8 @@ class SaleController extends Controller
         }else{
             $id = DB::table('customers')->insertGetId([
                 'customer_name' => $request->Customer_name,
-                'customer_address' => $request->Address,
-                'customer_contact' => $request->Contact,
+                'address' => $request->Address,
+                'contact' => $request->Contact,
             ]);
             $customer_code = $id;
         }
@@ -40,13 +41,13 @@ class SaleController extends Controller
         if($id_update > 0){
             DB::table('Sales')->where('id',$id_update)->delete();
             $id = DB::table('Sales')->insertGetId([
-                'customer_code' => $customer_code, //coming from ajax request
+                'customer_id' => $customer_code, //coming from ajax request
                 'delivery_fee' => $request->Delivery_fee,
                 'discount' => $request->Total_discount,
-                'total_amount' => $request->Total_amount,
+                'amount' => $request->Total_amount,
                 'forwarder_fee' => $request->Forwarder_fee,
                 'net_amount' => $request->Net_amount,
-                'created_by' => $request->Seller,
+                'seller_id' => $request->Seller,
                 'sale_date' => $request->Sale_date,
                 'balance' => $request->Balance,
             ]);
@@ -57,13 +58,13 @@ class SaleController extends Controller
             $message = "updated";
         }else{
             $id = DB::table('Sales')->insertGetId([
-                'customer_code' => $customer_code, //coming from ajax request
+                'customer_id' => $customer_code, //coming from ajax request
                 'delivery_fee' => $request->Delivery_fee,
                 'discount' => $request->Total_discount,
-                'total_amount' => $request->Total_amount,
+                'amount' => $request->Total_amount,
                 'forwarder_fee' => $request->Forwarder_fee,
                 'net_amount' => $request->Net_amount,
-                'created_by' => $request->Seller,
+                'seller_id' => $request->Seller,
                 'sale_date' => $request->Sale_date,
                 'balance' => $request->Balance,
             ]);
@@ -76,8 +77,8 @@ class SaleController extends Controller
         $sale_records = $request->Sale_records;//coming from ajax request
         foreach($sale_records as $k => $data){
             DB::table('Sale_records')->insert([
-                'sale_code' => $id, 
-                'product_code' => $data['product_code'],
+                'sale_id' => $id, 
+                'product_id' => $data['product_id'],
                 'quantity' => $data['quantity'],
                 'unit_price' => $data['price'],
                 'discount' => $data['discount'],
@@ -121,7 +122,7 @@ class SaleController extends Controller
     public function holdSale(Request $request)
     {
         $id = DB::table('hold_sales')->insertGetId([
-            'customer_code' => $request->Customer_select,
+            'customer_id' => $request->Customer_select,
             'customer_name' => $request->Customer_name,
             'customer_contact' => $request->Customer_contact,
             'customer_address' => $request->Customer_address,
@@ -135,8 +136,8 @@ class SaleController extends Controller
          $sale_records = $request->Sale_records;
          foreach($sale_records as $k => $data){
              DB::table('hold_sale_records')->insert([
-                 'sale_code' => $id, 
-                 'product_id' => $data['product_code'],
+                 'sale_id' => $id, 
+                 'product_id' => $data['product_id'],
                  'quantity' => $data['quantity'],
                  'unit_price' => $data['price'],
                  'discount' => $data['discount'],
@@ -179,7 +180,7 @@ class SaleController extends Controller
         $purchases = DB::select("SELECT po.*,s.supplier_address,SUM(pr.quantity) total_qty,SUM(ps.cost*pr.quantity) total_cost,po.net_amount - SUM((ps.cost*pr.quantity)) profit 
             FROM Purchase_records pr
             JOIN Product_stocks ps ON pr.product_code=ps.product_code
-            JOIN Purchases po ON po.id=pr.po_code
+            JOIN Purchase_orders po ON po.id=pr.po_code
             JOIN suppliers s ON s.id=po.supplier_code
             WHERE po.purchase_date BETWEEN '$start_date' AND '$end_date'
             GROUP BY po.id");
@@ -217,41 +218,41 @@ class SaleController extends Controller
             ]
         );
     }
-    public function return_stock(Request $request)
-    {
-        $status = $request->status;
-        $id = $request->id;
-        $product_id = '';
-        $old_quantity = '';
-        $sale = DB::table('sale_records')->select('product_code','quantity')->where('sale_code',$id)->get();
-        // foreach ($sale as $value){
-        //     array_push($product_id,$value->product_code);
-        // }
+    // public function return_stock(Request $request)
+    // {
+    //     $status = $request->status;
+    //     $id = $request->id;
+    //     $product_id = '';
+    //     $old_quantity = '';
+    //     $sale = DB::table('sale_records')->select('product_id','quantity')->where('sale_id',$id)->get();
+    //     // foreach ($sale as $value){
+    //     //     array_push($product_id,$value->product_code);
+    //     // }
 
-        if($status > 0){
-            DB::table('sales')->where('id',$id)->update(['status' => 0]);
-            foreach ($sale as $key => $value){
-                $product_id = $value->product_code;
-                $old_quantity = DB::table('product_stocks')->select('quantity')->where('product_code',$product_id)->first()->quantity;
-                $quantity = ($old_quantity - 0) + ($value->quantity -0);
-                DB::table('product_stocks')->where('product_code',$product_id)->update(['quantity'=>$quantity]);
-            }
+    //     if($status > 0){
+    //         DB::table('sales')->where('id',$id)->update(['deleted_at' => Carbon::now()]);
+    //         foreach ($sale as $key => $value){
+    //             $product_id = $value->product_id;
+    //             $old_quantity = DB::table('product_stocks')->select('total_qty')->where('product_id',$product_id)->first()->total_qty;
+    //             $quantity = ($old_quantity - 0) + ($value->quantity -0);
+    //             DB::table('product_stocks')->where('product_id',$product_id)->update(['total_qty'=>$quantity]);
+    //         }
             
-        }else{
-            DB::table('sales')->where('id',$id)->update(['status' => 1]);
-            foreach ($sale as $key => $value){
-                $product_id = $value->product_code;
-                $old_quantity = DB::table('product_stocks')->select('quantity')->where('product_code',$product_id)->first()->quantity;
-                $quantity = ($old_quantity - 0) - ($value->quantity -0);
-                DB::table('product_stocks')->where('product_code',$product_id)->update(['quantity'=>$quantity]);
-            }
-        }
-        return response()->json(
-            [
-                'success' => true,
-                'message' => 'Stock redo successful',
-                'old_quantity' => $old_quantity,
-            ]
-        );
-    }
+    //     }else{
+    //         DB::table('sales')->where('id',$id)->update(['deleted_at' => NULL]);
+    //         foreach ($sale as $key => $value){
+    //             $product_id = $value->product_id;
+    //             $old_quantity = DB::table('product_stocks')->select('total_qty')->where('product_id',$product_id)->first()->total_qty;
+    //             $quantity = ($old_quantity - 0) - ($value->quantity -0);
+    //             DB::table('product_stocks')->where('product_id',$product_id)->update(['total_qty'=>$quantity]);
+    //         }
+    //     }
+    //     return response()->json(
+    //         [
+    //             'success' => true,
+    //             'message' => 'Stock redo successful',
+    //             'old_quantity' => $old_quantity,
+    //         ]
+    //     );
+    // }
 }

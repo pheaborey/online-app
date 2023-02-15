@@ -37,14 +37,14 @@
                 <div class="panel panel-bordered" style="padding-bottom:5px;">
 
                     @php
-                        $suppliers = DB::table('suppliers')->select('supplier_name','supplier_address','supplier_contact')
-                                    ->where('id',$dataTypeContent['supplier_code'])->first();
+                        $suppliers = DB::table('suppliers')->select('supplier_name','address','contact')
+                                    ->where('id',$dataTypeContent['supplier_id'])->first();
                     @endphp
 
                     <div class="col-sm-2">Purchase Code: {{ $dataTypeContent['id'] }}</div>
-                    <div class="col-sm-4">Address: {{ $suppliers->supplier_address }}</div>
+                    <div class="col-sm-4">Address: {{ $suppliers->address }}</div>
                     <div class="col-sm-3">Supplier_Name: {{ $suppliers->supplier_name }}</div>
-                    <div class="col-sm-2">Contact: {{ $suppliers->supplier_contact }}</div>
+                    <div class="col-sm-2">Contact: {{ $suppliers->contact }}</div>
                     <br>
                     <table class="table-striped">
                         <thead style="background-color:skyblue;">
@@ -60,7 +60,7 @@
                         <tbody>
                             <?php
                                 $PurchaseRecords = DB::table('Purchase_records')
-                                                ->join('Products', 'Purchase_records.product_code', '=', 'Products.id')
+                                                ->join('Products', 'Purchase_records.product_id', '=', 'Products.id')
                                                 ->select('Purchase_records.*', 'Products.product_name')
                                                 ->where('po_code',$dataTypeContent['id'])
                                                 ->get();
@@ -68,7 +68,7 @@
                                 $total_qty = 0;
 
                                 $Purchase = DB::table('Purchases')
-                                            ->join('users', 'Purchases.created_by','=', 'users.id')
+                                            ->join('users', 'Purchases.purchaser','=', 'users.id')
                                             ->select('users.name')
                                             ->where('Purchases.id',$dataTypeContent['id'])
                                             ->first();

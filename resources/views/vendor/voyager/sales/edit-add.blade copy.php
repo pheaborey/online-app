@@ -4,9 +4,8 @@
     $rate_kh = DB::table('currencies')->select('rate','symbol')->where('id','1')->first();
 
     $hold_sale = DB::table('hold_sales')->select('*')->get();
-    $products = DB::table('Products')->join('product_stocks', 'products.id', '=', 'product_stocks.product_id')->select('products.id','product_name','product_image','sale_price')->get();
+    $products = DB::table('Products')->select('id','product_name')->get();
     $customers = DB::table('customers')->select('id','customer_name','address','contact')->get();
-    $categories = DB::table('products_types')->select('id','type_name')->get();
     
     $hold_option ='';
     $customer_option ='';
@@ -41,23 +40,14 @@
         $default_row = $sale_record->count();
         $invoice_no = $edit;
     }
-    $menu = '';
     foreach ($products as $key=>$item){
         $option .= '<option value="'. $item->id .'">'. $item->product_name . '</option>';
-        $menu .= '<div class="col-md-4"><div class="thumbnail">'.
-                                    '<button class="id_pro" id_pro="'.$item->id.'" name_pro="'.$item->product_name.'" price_pro = "'.$item->sale_price.'">'.
-                                    '<img src="../../public/storage/'.$item->product_image.'" style="width: 150px; height: 150px;">'.
-                                    '<div class="caption" style="font-size:11px;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;; width:150px; height: 30px;">'. $item->product_name . '</div></button> </div></div>';
     }
     foreach ($customers as $item){
         $customer_option .= '<option value="'. $item->id .'">'. $item->customer_name .' - '.$item->address.' - '.$item->contact. '</option>';
     }
     foreach ($hold_sale as $key => $value) {
         $hold_option .= '<option value="'. $value->id .'">'.$value->customer_name.' - Hold '.$value->id. '</option>';
-    }
-    $option_btn = '<li><button cate_id = "all">All Categories</button></li>';
-    foreach ($categories as $key=>$item){
-        $option_btn .= '<li><button cate_id = "'. $item->id .'">'.$item->type_name.'</button></li>';
     }
 @endphp
 
@@ -71,83 +61,28 @@
 
 @section('page_header')
     
-    <!-- <h1 class="page-title">
+    <h1 class="page-title">
         <i class="{{ $dataType->icon }}"></i>
         {{ __('voyager::generic.'.($edit ? 'edit' : 'add')).' '.$dataType->getTranslatedAttribute('display_name_singular') }}  
-    </h1> -->
-    <style>
-        .fixed_header tbody td .td_scroll{
-        display:block;
-        width: 100%;
-        overflow: auto;
-        height:600px;
-        }
-    </style>
-    <div class="container">
-        <table class="table table-bordered table-striped fixed_header">
-            <thead>
-                <tr>
-                    <th width=50%>
-                        <div class="input-group">
-                            <span class="input-group-addon">Search</span>
-                            <input id="search_product" type="text" class="form-control">
-                        </div>
-                        <ul class="pagination">
-                            <?php echo $option_btn ;?>
-                        </ul>
-                    </th>
-                    <th width=50%>
-                        <select class="selectpicker" id="select_customer" data-live-search="true">
-                            <option value="general_customer">General Customer</option>
-                            <option value="new_customer">New Customer</option>
-                            @php echo $customer_option @endphp   
-                        </select>
-                        <span id="span_hold">
-                            <select class="selectpicker" id="select_hold" data-live-search="true">
-                                <option value="0">Select Hold</option>
-                                @php echo $hold_option @endphp
-                            </select>
-                            <button class="btn-xs btn-danger" id="btn-delete-hold"><span class="voyager-trash"> Delete Hold</span></button>
-                        </span>
-                        <span id="span_btn_hold" style="display: inline">
-                            <button class="btn-xs btn-warning" id="btn-hold"><span class="voyager-download"> Hold Sale</span></button>
-                        </span>
-                        <span><button class="btn-xs btn-danger" id="btn-reload"><span class="voyager-trash"> Clear Cart</span></button>
-
-                        </span>
-                        <span style="float: right; padding-top:5px;">Rate: $1 = <?php echo $rate_kh->rate ." ". $rate_kh->symbol ?></span>
-                    </th>
-                </tr>
-            </thead>
-            <tbody id="myTable">
-                <tr>
-                    <td style="padding:5px;"><span class="td_scroll"><?php echo $menu;?></span></td>
-                    <td id="td_cart">
-                        <span class="col-sm-1">No.</span>
-                        <span class="col-sm-8">Product Name</span>
-                        <span class="col-sm-1">QTY</span>
-                        <span class="col-sm-1">Amount</span>
-                        <span class="col-sm-1"></span>
-                        <span class="td_scroll" id="cart_list">
-                            <!-- data will show here -->
-                        </span>
-                        <label>Subtotal</label><br>
-                        <label>Subtotal</label><br>
-                        <label>Subtotal</label><br>
-                        <label>Subtotal</label><br>
-                        <label>Subtotal</label>
-                    </td>
-                </tr>
-            </tbody>
-            
-        </table>
-    </div>
+    </h1>
+    <button type="button" class="btn btn-success" id="btn_addRow" style="margin-right: 20px">Add Row</button>
+    <label for="select_customer">Customer</label>
+    <select class="selectpicker" id="select_customer" data-live-search="true">
+        <option value="new_customer">New Customer</option>
+        @php echo $customer_option @endphp   
+    </select>
+    <span id="span_hold">
+        <select class="selectpicker" id="select_hold" data-live-search="true">
+            <option value="0">Select Hold</option>
+            @php echo $hold_option @endphp
+        </select>
+        <button class="btn-xs btn-danger" id="btn-delete-hold"><span class="voyager-trash"> Delete Hold</span></button>
+    </span>
+    <span id="span_btn_hold" style="display: none">
+        <button class="btn-xs btn-warning" id="btn-hold"><span class="voyager-download"> Hold Sale</span></button>
+    </span>
     
-    <!-- <button type="button" class="btn btn-success" id="btn_addRow" style="margin-right: 20px">Add Row</button> -->
-    
-    
-    
-   
+    <span style="float: right; padding-top:43px;">Rate: $1 = <?php echo $rate_kh->rate ." ". $rate_kh->symbol ?></span>
     @include('voyager::multilingual.language-selector')
 @stop
 
@@ -174,7 +109,7 @@
                             
                             <form action="" method="GET" name="form">
                                 <div class="hidden" id="current_sale"></div> 
-                                <!-- <div class="col-sm-4">                   
+                                <div class="col-sm-4">                   
                                     <input type="text" name="customer_name" class="form-control" placeholder="Customer Name" id="customer_name">
                                 </div>
                                 <div class="col-sm-4">                   
@@ -182,7 +117,7 @@
                                 </div>
                                 <div class="col-sm-4" style="padding-bottom:5px;">                   
                                     <input type="text" class="form-control" placeholder="Customer Contact" id="customer_contact">
-                                </div> -->
+                                </div>
                                 <table class="table-striped" id="sale_table">
                                     <thead style="background-color:skyblue;">
                                     <tr>
@@ -581,25 +516,8 @@
 
 @section('javascript')
     <script>
-        
         var params = {};
         var $file;
-
-        var pro_i = 1;
-        var pro_list = [];
-
-        function remove_item(div_id){
-            $('#div_row'+div_id).remove();
-            pro_i -= 1;
-            $('.no_index').each(function(index, value) {
-                var new_index = index + 1;
-                $(this).text(new_index);
-            });
-            var removeItem = div_id;
-            pro_list = jQuery.grep(pro_list, function(value) {
-            return value != removeItem;
-            })
-        };
 
         function deleteHandler(tag, isMulti) {
           return function() {
@@ -620,7 +538,6 @@
         }
 
         $('document').ready(function () {
-            
             var hold_option = '@php echo $hold_option @endphp';
             if(hold_option != ''){
                 document.getElementById('span_hold').style.display = "inline";
@@ -948,65 +865,6 @@
                     $('#customer_contact').val('');
                 }
             })
-            
-            $('.id_pro').on('click', function(){
-                var id = $(this).attr('id_pro');
-                var pro_name = $(this).attr('name_pro');
-                var pro_price = $(this).attr('price_pro');
-                
-                if (pro_i > 1){
-
-                    var condition='';
-                    
-                    condition = pro_list.find(checkID);
-
-                    if(condition != id){
-                        addlist();
-                    }else{
-                        var qty_id = '#qty'+id;
-                        var current_qty = $('#quantity'+id).val();
-                        var new_qty = (current_qty - 0 ) + (1-0);
-                        $(qty_id).text(new_qty);
-                        $('#quantity'+id).val(new_qty);
-
-                        var amount_id = '#amount'+id;
-                        var new_amount = (new_qty - 0 ) * ($('#sale_price'+id).val()-0);
-                        $(amount_id).text(new_amount);
-                    }
-                    
-                }else{
-                    addlist();
-                }
-                
-                function addlist(){
-                    $('#cart_list').append('<div class="panel-default div_row" id="div_row'+id+'">'+
-                                    '<div class="panel-heading">'+
-                                    '<span class="col-sm-1 no_index" id="no_index'+pro_i+'">'+pro_i+'</span>'+
-                                    '<a data-toggle="collapse" href="#collapse'+id+'">'+pro_name+'</a>'+
-                                    '<button onclick="remove_item('+id+')" style="float :right;" id="remove'+id+'" class="glyphicon glyphicon-remove-sign"></button>'+
-                                    '<span style="float:right; padding-right:20px;" id="amount'+id+'">'+pro_price+'</span>'+      
-                                    '<span style="float:right; padding-right:50px;" id="qty'+id+'">1</span>'+
-                                    '</div>'+
-                                    '<div id="collapse'+id+'" class="panel-collapse collapse">'+
-                                    '<div class="input-group">'+
-                                    '<span class="input-group-addon">Quantity</span>'+
-                                    '<input id="quantity'+id+'" type="number" class="form-control" value="1">'+
-                                    '<span class="input-group-addon">Sale_price</span>'+
-                                    '<input id="sale_price'+id+'" type="number" class="form-control" value="'+pro_price+'" disabled>'+
-                                    '<span class="input-group-addon">Discount % </span>'+
-                                    '<input id="discount" type="number" class="form-control" value="0">'+
-                                    '</div></div></div>');
-                    pro_list.push(id);
-                    pro_i +=1;
-                }
-                function checkID(result) {
-                    return result == id;
-                }
-                // alert(pro_name);
-                
-                //current coding
-            })
-
             $('#payment').on('click', function(){
 
                 var seller = $('#seller').val();
@@ -1291,6 +1149,5 @@
             });
             $('[data-toggle="tooltip"]').tooltip();
         });
-        
     </script>
 @stop

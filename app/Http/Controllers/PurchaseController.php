@@ -15,8 +15,8 @@ class PurchaseController extends Controller
     {
         $url = $request->Current_url;
         $values = parse_url($url);
-        $host = explode('/purchases',$values['path']);//cut end
-        $redirect = $host[0] . "/purchases";
+        $host = explode('/Purchases',$values['path']);//cut end
+        $redirect = $host[0];
 
         $supplier_select = $request->Supplier_code;
         if($supplier_select != 'new_supplier'){
@@ -24,8 +24,8 @@ class PurchaseController extends Controller
         }else{
             $id = DB::table('suppliers')->insertGetId([
                 'supplier_name' => $request->Supplier_name,
-                'supplier_address' => $request->Supplier_address,
-                'supplier_contact' => $request->Supplier_contact,
+                'address' => $request->Supplier_address,
+                'contact' => $request->Supplier_contact,
             ]);
             $supplier_code = $id;
         }
@@ -34,16 +34,16 @@ class PurchaseController extends Controller
         if($id_update > 0){
             DB::table('Purchases')->where('id',$id_update)->delete();
             $id = DB::table('Purchases')->insertGetId([
-                'supplier_code' => $supplier_code, //coming from ajax request
-                'total_quantity' => $request->Total_quantity,
+                'supplier_id' => $supplier_code, //coming from ajax request
+                'total_qty' => $request->Total_quantity,
                 'freight_fee' => $request->Freight_fee,
                 'discount' => $request->Total_discount,
-                'total_amount' => $request->Total_amount,
+                'amount' => $request->Total_amount,
                 'visa_fee' => $request->Visa_fee,
                 'other_fee' => $request->Other_fee,
                 'forwarder_fee' => $request->Forwarder_fee,
                 'net_amount' => $request->Net_amount,
-                'created_by' => $request->Buyer,
+                'purchaser' => $request->Buyer,
                 'purchase_date' => $request->Po_date,
                 'balance' => $request->Balance,
             ]);
@@ -54,16 +54,16 @@ class PurchaseController extends Controller
             $message = "updated";
         }else{
             $id = DB::table('Purchases')->insertGetId([
-                'supplier_code' => $supplier_code, //coming from ajax request
-                'total_quantity' => $request->Total_quantity,
+                'supplier_id' => $supplier_code, //coming from ajax request
+                'total_qty' => $request->Total_quantity,
                 'freight_fee' => $request->Freight_fee,
                 'discount' => $request->Total_discount,
-                'total_amount' => $request->Total_amount,
+                'amount' => $request->Total_amount,
                 'visa_fee' => $request->Visa_fee,
                 'other_fee' => $request->Other_fee,
                 'forwarder_fee' => $request->Forwarder_fee,
                 'net_amount' => $request->Net_amount,
-                'created_by' => $request->Buyer,
+                'purchaser' => $request->Buyer,
                 'purchase_date' => $request->Po_date,
                 'balance' => $request->Balance,
             ]);
@@ -75,9 +75,9 @@ class PurchaseController extends Controller
         //insert Sale_records
         $po_records = $request->Po_records;//coming from ajax request
         foreach($po_records as $k => $data){
-            DB::table('Purchase_records')->insert([
+            DB::table('purchase_records')->insert([
                 'po_code' => $id, 
-                'product_code' => $data['product_code'],
+                'product_id' => $data['product_code'],
                 'quantity' => $data['quantity'],
                 'cost' => $data['cost'],
                 'sale_price' => $data['sale_price'],

@@ -152,7 +152,7 @@
                                     "<td>"+formatter.format(po_data['total_amount'])+"</td>"+
                                     "<td>"+formatter.format(po_data['net_amount'])+"</td>"+
                                     (po_data['profit']<0 ? "<td style='color:red'>" +formatter.format(po_data['profit']) + "</td>" : "<td>"+formatter.format(po_data['profit'])+"</td>")+
-                                    "<td data-tableexport-display='none'><a href='../admin/purchases/"+po_data['id']+"' target='_blank' class='btn-xs btn-info'> <span class='voyager-eye'></span> View</a></td>"+
+                                    "<td data-tableexport-display='none'><a href='../admin/purchase-orders/"+po_data['id']+"' target='_blank' class='btn-xs btn-info'> <span class='voyager-eye'></span> View</a></td>"+
                                     "</tr>";
                             sum_qty += (po_data['total_qty']-0);
                             sum_cost += (po_data['total_cost']-0);

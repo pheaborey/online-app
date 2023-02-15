@@ -2,14 +2,14 @@
     $edit = !is_null($dataTypeContent->getKey());
     $add  = is_null($dataTypeContent->getKey());
     $rate_kh = DB::table('currencies')->select('rate','symbol')->where('id','1')->first();
-    $rate_visa = DB::table('currencies')->select('rate','symbol')->where('id','3')->first();
+    $rate_visa = DB::table('currencies')->select('rate','symbol')->where('id','2')->first();
 
     $products = DB::table('Products')->select('id','product_name')->get();
-    $suppliers = DB::table('suppliers')->select('id','supplier_name','supplier_address','supplier_contact')->get();
+    $suppliers = DB::table('suppliers')->select('id','supplier_name','address','contact')->get();
     $supplier_option ='';
     $option ='';
     $po_record = DB::table('Purchase_records')
-                        ->select('po_code','product_code','quantity','sale_price','cost','cost_amount','created_at')
+                        ->select('po_code','product_id','quantity','sale_price','cost','cost_amount','created_at')
                         ->get();
     $purchase = DB::table('Purchases')->select('*')->get();
     $default_row = 5;
@@ -32,7 +32,7 @@
         $edit = substr($host[0],(strlen($host2[0])+10));//select only purchases id
         $purchase = DB::table('Purchases')->select('*')->where('id',$edit)->get();
         $po_record = DB::table('Purchase_records')
-                        ->select('po_code','product_code','quantity','sale_price','cost','cost_amount','created_at')
+                        ->select('po_code','product_id','quantity','sale_price','cost','cost_amount','created_at')
                         ->where('po_code',$edit)->get();
         $default_row = $po_record->count();
         $po_no = $edit;
@@ -41,7 +41,7 @@
         $option .= '<option value="'. $item->id .'">'. $item->product_name . '</option>';
     }
     foreach ($suppliers as $item){
-        $supplier_option .= '<option value="'. $item->id .'">'. $item->supplier_name .' - '.$item->supplier_address.' - '.$item->supplier_contact. '</option>';
+        $supplier_option .= '<option value="'. $item->id .'">'. $item->supplier_name .' - '.$item->address.' - '.$item->contact. '</option>';
     }
 @endphp
 
@@ -531,12 +531,12 @@
                 var purchase_arr = purchase.filter( function(purchase){return (purchase.id==id);} );
                 $('#po_date').val(purchase_arr[0]['purchase_date']);
 
-                var supplier_id = purchase_arr[0]['supplier_code'];
+                var supplier_id = purchase_arr[0]['supplier_id'];
                 var suppliers = @php echo $suppliers @endphp;
                 var value = suppliers.filter( function(suppliers){return (suppliers.id==supplier_id);} );
                 $('#supplier_name').val(value[0]['supplier_name']);
-                $('#supplier_address').val(value[0]['supplier_address']);
-                $('#supplier_contact').val(value[0]['supplier_contact']);
+                $('#supplier_address').val(value[0]['address']);
+                $('#supplier_contact').val(value[0]['contact']);
                 $('#select_supplier').val(supplier_id).selectpicker('refreh').trigger('change');
 
                 var po_record = @php echo $po_record @endphp;
@@ -550,7 +550,7 @@
                     var sale_price = '#sale_price' + i;
                     var qty = '#qty' + i;
                     var cost_amount = '#cost_amount' + i;
-                    var value = po_code[i-1]['product_code'];
+                    var value = po_code[i-1]['product_id'];
                     var name = product.filter( function(product){return (product.id==value);} );
                     // console.log(name[0]['product_name']);
                     // $(selected_product).append('<option selected value="'+value+'">'+name[0]['product_name']+'</option>');
@@ -581,10 +581,10 @@
                     }
                     var parent = $(this).closest('tr');
                     var id = parent.find("td:eq(1) select").val();
-                    @php $cost = DB::table('Product_stocks')->select('sale_price','product_code','cost')->get(); @endphp;
+                    @php $cost = DB::table('Product_stocks')->select('sale_price','product_id','cost')->get(); @endphp;
                     var newCost = @php echo $cost @endphp;
                     var newPrice = 0;
-                    var getCost = newCost.filter( function(newCost){return (newCost.product_code==id);} );
+                    var getCost = newCost.filter( function(newCost){return (newCost.product_id==id);} );
                     if(getCost.length>0){
                         newCost = getCost[0]['cost'];
                         newPrice = getCost[0]['sale_price'];
@@ -636,8 +636,8 @@
                 if($(this).val() != 'new_supplier'){
                     var value = suppliers.filter( function(suppliers){return (suppliers.id==id);} );
                     $('#supplier_name').val(value[0]['supplier_name']);
-                    $('#supplier_address').val(value[0]['supplier_address']);
-                    $('#supplier_contact').val(value[0]['supplier_contact']);
+                    $('#supplier_address').val(value[0]['address']);
+                    $('#supplier_contact').val(value[0]['contact']);
                 }else{
                     $('#supplier_name').val('');
                     $('#supplier_address').val('');
