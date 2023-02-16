@@ -44,10 +44,11 @@
     $menu = '';
     foreach ($products as $key=>$item){
         $option .= '<option value="'. $item->id .'">'. $item->product_name . '</option>';
-        $menu .= '<div class="col-md-4"><div class="thumbnail">'.
-                                    '<button class="id_pro" id_pro="'.$item->id.'" name_pro="'.$item->product_name.'" price_pro = "'.$item->sale_price.'">'.
-                                    '<img src="../../public/storage/'.$item->product_image.'" style="width: 150px; height: 150px;">'.
-                                    '<div class="caption" style="font-size:11px;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;; width:150px; height: 30px;">'. $item->product_name . '</div></button> </div></div>';
+        $menu .='<div class="col-sm-2 btn id_pro" id_pro="'.$item->id.'" name_pro="'.$item->product_name.'" price_pro = "'.$item->sale_price.'">'.
+                    '<img src="../../public/storage/'.$item->product_image.'" style="width:100%;">'.
+                    '<span class="caption">'.
+                    '<p style="font-size:11px;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;text-align:center">'. $item->product_name . '</p>'.
+                    '</span></div>';
     }
     foreach ($customers as $item){
         $customer_option .= '<option value="'. $item->id .'">'. $item->customer_name .' - '.$item->address.' - '.$item->contact. '</option>';
@@ -65,6 +66,22 @@
 
 @section('css')
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        .fixed_header tbody td .menu_scroll{
+        display:block;
+        width: 100%;
+        overflow: auto;
+        height:800px;
+        }
+        .fixed_header tbody td .item_scroll{
+        display:block;
+        width: 100%;
+        overflow: auto;
+        height:500px;
+        }
+        .space{height:5px;}
+        .bg-color{background-color:LightSalmon;color:white;border-radius:3px;}
+    </style>
 @stop
 
 @section('page_title', __('voyager::generic.'.($edit ? 'edit' : 'add')).' '.$dataType->getTranslatedAttribute('display_name_singular'))
@@ -75,19 +92,11 @@
         <i class="{{ $dataType->icon }}"></i>
         {{ __('voyager::generic.'.($edit ? 'edit' : 'add')).' '.$dataType->getTranslatedAttribute('display_name_singular') }}  
     </h1> -->
-    <style>
-        .fixed_header tbody td .td_scroll{
-        display:block;
-        width: 100%;
-        overflow: auto;
-        height:600px;
-        }
-    </style>
-    <div class="container">
-        <table class="table table-bordered table-striped fixed_header">
+    
+        <table class="table table-responsive fixed_header" >
             <thead>
                 <tr>
-                    <th width=50%>
+                    <th>
                         <div class="input-group">
                             <span class="input-group-addon">Search</span>
                             <input id="search_product" type="text" class="form-control">
@@ -96,58 +105,92 @@
                             <?php echo $option_btn ;?>
                         </ul>
                     </th>
-                    <th width=50%>
+                    <th>
                         <select class="selectpicker" id="select_customer" data-live-search="true">
-                            <option value="general_customer">General Customer</option>
-                            <option value="new_customer">New Customer</option>
                             @php echo $customer_option @endphp   
                         </select>
-                        <span id="span_hold">
-                            <select class="selectpicker" id="select_hold" data-live-search="true">
-                                <option value="0">Select Hold</option>
-                                @php echo $hold_option @endphp
-                            </select>
-                            <button class="btn-xs btn-danger" id="btn-delete-hold"><span class="voyager-trash"> Delete Hold</span></button>
-                        </span>
-                        <span id="span_btn_hold" style="display: inline">
-                            <button class="btn-xs btn-warning" id="btn-hold"><span class="voyager-download"> Hold Sale</span></button>
-                        </span>
-                        <span><button class="btn-xs btn-danger" id="btn-reload"><span class="voyager-trash"> Clear Cart</span></button>
-
-                        </span>
+                        <button class="btn-xs btn-warning" id="btn-addNewCus"><span class="voyager-plus"> Add New</span></button>
+                        <button onclick="clear_cart();" class="btn-xs btn-danger" id="btn-reload"><span class="voyager-trash"> Clear Cart</span></button>
                         <span style="float: right; padding-top:5px;">Rate: $1 = <?php echo $rate_kh->rate ." ". $rate_kh->symbol ?></span>
                     </th>
                 </tr>
             </thead>
             <tbody id="myTable">
                 <tr>
-                    <td style="padding:5px;"><span class="td_scroll"><?php echo $menu;?></span></td>
-                    <td id="td_cart">
-                        <span class="col-sm-1">No.</span>
-                        <span class="col-sm-8">Product Name</span>
-                        <span class="col-sm-1">QTY</span>
-                        <span class="col-sm-1">Amount</span>
+                    <td width=70%>
+                        <span class="menu_scroll">
+                            <?php echo $menu;?>
+                        </span>
+                    </td>
+                    <td id="td_cart" style="border: 1px solid black;">
+                        <span class="col-sm-1 bg-color">No.</span>
+                        <span class="col-sm-6 bg-color">Product Name</span>
+                        <span class="col-sm-2 bg-color">QTY</span>
+                        <span class="col-sm-2 bg-color">Amount</span>
                         <span class="col-sm-1"></span>
-                        <span class="td_scroll" id="cart_list">
+                        <span id="cart_list" class="item_scroll">
                             <!-- data will show here -->
                         </span>
-                        <label>Subtotal</label><br>
-                        <label>Subtotal</label><br>
-                        <label>Subtotal</label><br>
-                        <label>Subtotal</label><br>
-                        <label>Subtotal</label>
+                        <div style="background-color:LightSalmon; color:white;border-radius:5px; text-align:center;">
+                            <label> <span class="glyphicon glyphicon-plus-sign">Add</span></label>
+                            <span class="btn" id="add_discount">Discount(%)</span>
+                            <span class="btn" id="add_cupon">Cupon($)</span>
+                            <span class="btn" id="add_delivery_fee">Delivery Fee($)</span>
+                        </div>
+                            
+                        <div class="space"></div>
+                        <div class="form-group">
+                            <label class="col-sm-4 col-form-label">Subtotal ($):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="subtotal" readonly value=0>
+                            </div>
+                        </div>
+                        <div class="form-group" id="div_add_discount" style="display:none;">
+                            <div style="height:20px;"></div>
+                            <label class="col-sm-4 col-form-label">Discount (%):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="discount">
+                            </div>  
+                        </div>
+                        <div class="form-group" id="div_add_cupon" style="display:none;">
+                            <div style="height:20px;"></div>
+                            <label class="col-sm-4 col-form-label">Cupon ($):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="cupon">
+                            </div>  
+                        </div>
+                        <div class="form-group" id="div_add_delivery_fee" style="display:none;">
+                            <div style="height:20px;"></div>
+                            <label class="col-sm-4 col-form-label">Delivery Fee ($):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="delivery_fee">
+                            </div>  
+                        </div>
+                        <div class="form-group">
+                            <div style="height:20px;"></div>
+                            <label class="col-sm-4 col-form-label">VAT (%):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="tax_vat" value=0>
+                            </div>  
+                        </div>
+                        
+                        <div class="form-group">
+                            <div style="height:20px;"></div>
+                            <label class="col-sm-4 col-form-label">Grand Total ($):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="grand_total" readonly value=0>
+                            </div>  
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-warning" id="btn-hold"><span class="glyphicon glyphicon-download"> Hold Order</span></button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-success" id="btn-check-out" style="float:right;"><span class="glyphicon glyphicon-check"> Check Out</span></button>
+                        </div>
                     </td>
                 </tr>
             </tbody>
-            
         </table>
-    </div>
-    
-    <!-- <button type="button" class="btn btn-success" id="btn_addRow" style="margin-right: 20px">Add Row</button> -->
-    
-    
-    
-   
     @include('voyager::multilingual.language-selector')
 @stop
 
@@ -582,9 +625,6 @@
 @section('javascript')
     <script>
         
-        var params = {};
-        var $file;
-
         var pro_i = 1;
         var pro_list = [];
 
@@ -601,6 +641,33 @@
             })
         };
 
+        $('#add_discount, #add_cupon, #add_delivery_fee').on('click',function(){
+            var div_id ='div_'+ $(this).attr('id');
+            document.getElementById(div_id).style.display = "inline";
+        });
+
+       function clear_cart() {
+            if (confirm('Are you sure ! Clear Cart?')) {
+                pro_i = 1;
+                pro_list = [];
+                $('#cart_list').empty();
+            } else {
+                return false;
+            }   
+       };
+
+
+
+
+
+
+
+
+
+
+
+        var params = {};
+        var $file;
         function deleteHandler(tag, isMulti) {
           return function() {
             $file = $(this).siblings(tag);
@@ -621,12 +688,12 @@
 
         $('document').ready(function () {
             
-            var hold_option = '@php echo $hold_option @endphp';
-            if(hold_option != ''){
-                document.getElementById('span_hold').style.display = "inline";
-            }else{
-                document.getElementById('span_hold').style.display = "none";
-            }
+            // var hold_option = '@php echo $hold_option @endphp';
+            // if(hold_option != ''){
+            //     document.getElementById('span_hold').style.display = "inline";
+            // }else{
+            //     document.getElementById('span_hold').style.display = "none";
+            // }
 
             toastr.options = {
                 "closeButton": true,
@@ -979,22 +1046,22 @@
                 }
                 
                 function addlist(){
-                    $('#cart_list').append('<div class="panel-default div_row" id="div_row'+id+'">'+
+                    $('#cart_list').append('<div class="div_row panel-info" id="div_row'+id+'">'+
                                     '<div class="panel-heading">'+
                                     '<span class="col-sm-1 no_index" id="no_index'+pro_i+'">'+pro_i+'</span>'+
-                                    '<a data-toggle="collapse" href="#collapse'+id+'">'+pro_name+'</a>'+
-                                    '<button onclick="remove_item('+id+')" style="float :right;" id="remove'+id+'" class="glyphicon glyphicon-remove-sign"></button>'+
-                                    '<span style="float:right; padding-right:20px;" id="amount'+id+'">'+pro_price+'</span>'+      
-                                    '<span style="float:right; padding-right:50px;" id="qty'+id+'">1</span>'+
+                                    '<a style="text-decoration: none" data-toggle="collapse" href="#collapse'+id+'" class="col-sm-6">'+pro_name+'</a>'+   
+                                    '<span class="col-sm-2" id="qty'+id+'">1</span>'+
+                                    '<span class="col-sm-2" id="amount'+id+'">'+pro_price+'</span>'+
+                                    '<button onclick="remove_item('+id+')" id="remove'+id+'" class="glyphicon glyphicon-remove-sign"></button>'+
                                     '</div>'+
                                     '<div id="collapse'+id+'" class="panel-collapse collapse">'+
                                     '<div class="input-group">'+
-                                    '<span class="input-group-addon">Quantity</span>'+
+                                    '<span class="input-group-addon">Quantities</span>'+
                                     '<input id="quantity'+id+'" type="number" class="form-control" value="1">'+
-                                    '<span class="input-group-addon">Sale_price</span>'+
+                                    '<span class="input-group-addon">Sale price ($)</span>'+
                                     '<input id="sale_price'+id+'" type="number" class="form-control" value="'+pro_price+'" disabled>'+
                                     '<span class="input-group-addon">Discount % </span>'+
-                                    '<input id="discount" type="number" class="form-control" value="0">'+
+                                    '<input id="discount (%)" type="number" class="form-control" value="0">'+
                                     '</div></div></div>');
                     pro_list.push(id);
                     pro_i +=1;
