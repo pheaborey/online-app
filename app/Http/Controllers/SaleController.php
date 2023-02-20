@@ -20,24 +20,12 @@ class SaleController extends Controller
 
     public function saveSale(Request $request)
     {
-        $url = $request->Current_url;
-        $values = parse_url($url);
-        $host = explode('/sales',$values['path']);//cut end
-        $redirect = $host[0] . "/sales/create";
+        // $url = $request->Current_url;
+        // $values = parse_url($url);
+        // $host = explode('/sales',$values['path']);//cut end
+        // $redirect = $host[0] . "/sales/create";
 
-        $customer_select = $request->Customer_select;
-        if($customer_select != 'new_customer'){
-            $customer_code = $request->Customer_select;
-        }else{
-            $id = DB::table('customers')->insertGetId([
-                'customer_name' => $request->Customer_name,
-                'address' => $request->Address,
-                'contact' => $request->Contact,
-            ]);
-            $customer_code = $id;
-        }
-
-        $id_update = $request->Id_update;
+        $id_update = $request->id_update;
         if($id_update > 0){
             DB::table('Sales')->where('id',$id_update)->delete();
             $id = DB::table('Sales')->insertGetId([
@@ -57,16 +45,15 @@ class SaleController extends Controller
             $id = $id_update;
             $message = "updated";
         }else{
-            $id = DB::table('Sales')->insertGetId([
-                'customer_id' => $customer_code, //coming from ajax request
-                'delivery_fee' => $request->Delivery_fee,
-                'discount' => $request->Total_discount,
-                'amount' => $request->Total_amount,
-                'forwarder_fee' => $request->Forwarder_fee,
-                'net_amount' => $request->Net_amount,
-                'seller_id' => $request->Seller,
-                'sale_date' => $request->Sale_date,
-                'balance' => $request->Balance,
+            $id = DB::table('sales')->insertGetId([
+                'customer_id' => $request->customer_id, //coming from ajax request
+                'delivery_fee' => $request->delivery_fee,
+                'discount' => $request->discount,
+                'amount' => $request->amount,
+                'net_amount' => $request->net_amount,
+                'seller_id' => $request->seller_id,
+                'sale_date' => $request->sale_date,
+                'total_qty' => $request->total_qty
             ]);
             $message = "inserted";
 
@@ -74,80 +61,70 @@ class SaleController extends Controller
         
 
         //insert Sale_records
-        $sale_records = $request->Sale_records;//coming from ajax request
+        $sale_records = $request->sale_record_arr;//coming from ajax request
         foreach($sale_records as $k => $data){
-            DB::table('Sale_records')->insert([
+            DB::table('sale_records')->insert([
                 'sale_id' => $id, 
                 'product_id' => $data['product_id'],
                 'quantity' => $data['quantity'],
-                'unit_price' => $data['price'],
+                'unit_price' => $data['unit_price'],
                 'discount' => $data['discount'],
-                'amount' => $data['total_amount'],
+                'amount' => $data['amount'],
             ]);
         }
 
         return response()->json(
             [
                 'success' => true,
-                'message' => 'Data '.$message.' successfully',
-                'redirect' => $redirect
+                'message' => 'Data '.$message.' successfully'
                 
             ]
         );
     }
-    public function saveProduct(Request $request)
+
+    public function saveCustomer(Request $request)
     {
-        $id = DB::table('Products')->insertGetId([
-            'product_name' => $request->Product_name, //coming from ajax request
-            'product_type' => $request->Product_type,
+        $id = DB::table('customers')->insertGetId([
+            'customer_name' => $request->customer_name, //coming from ajax request
+            'address' => $request->customer_address,
+            'contact' => $request->customer_contact
         ]);
         return response()->json(
             [
                 'success' => true,
-                'message' => 'Product created successfully',
-                'product_code' => $id
+                'message' => 'Customer created successfully',
+                'customer_id' => $id
             ]
         );
     }
+
     public function deleteHoldSale(Request $request)
     {
-        DB::table('hold_sales')->where('id','=', $request->delete_id)->delete();
+        DB::table('hold_carts')->where('created_at','=', $request->cart_no)->delete();
         return response()->json(
             [
                 'success' => true,
-                'message' => 'Hold sale was deleted successfully',
+                'message' => 'Hold cart was deleted successfully',
             ]
         );
     }
     public function holdSale(Request $request)
     {
-        $id = DB::table('hold_sales')->insertGetId([
-            'customer_id' => $request->Customer_select,
-            'customer_name' => $request->Customer_name,
-            'customer_contact' => $request->Customer_contact,
-            'customer_address' => $request->Customer_address,
-            'delivery_fee' => $request->Delivery_fee,
-            'total_discount' => $request->Total_discount,
-            'delivery_expense' => $request->Forwarder_fee,
-            'seller' => $request->Seller,
-            'sale_date' => $request->Sale_date,
-        ]);
-    
-         $sale_records = $request->Sale_records;
-         foreach($sale_records as $k => $data){
-             DB::table('hold_sale_records')->insert([
-                 'sale_id' => $id, 
+         $hold_carts = $request->hold_cart_arr;
+         foreach($hold_carts as $k => $data){
+             DB::table('hold_carts')->insert([
                  'product_id' => $data['product_id'],
                  'quantity' => $data['quantity'],
-                 'unit_price' => $data['price'],
+                 'unit_price' => $data['unit_price'],
                  'discount' => $data['discount'],
+                 'amount' => $data['amount']
              ]);
          }
 
         return response()->json(
             [
                 'success' => true,
-                'message' => 'Sales records was hold successfully',
+                'message' => 'Your cart was hold successfully',
             ]
         );
     }

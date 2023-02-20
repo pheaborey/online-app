@@ -1,9 +1,10 @@
 @php
     $edit = !is_null($dataTypeContent->getKey());
     $add  = is_null($dataTypeContent->getKey());
+    $userId = Auth::id();
     $rate_kh = DB::table('currencies')->select('rate','symbol')->where('id','1')->first();
 
-    $hold_sale = DB::table('hold_sales')->select('*')->get();
+    $hold_cart = DB::table('hold_carts')->select('created_at')->groupBy('created_at')->get();
     $products = DB::table('Products')
                 ->join('product_stocks', 'products.id', '=', 'product_stocks.product_id')
                 ->join('products_types', 'products.product_type', '=', 'products_types.id')
@@ -56,8 +57,8 @@
     foreach ($customers as $item){
         $customer_option .= '<option value="'. $item->id .'">'. $item->customer_name .' - '.$item->address.' - '.$item->contact. '</option>';
     }
-    foreach ($hold_sale as $key => $value) {
-        $hold_option .= '<option value="'. $value->id .'">'.$value->customer_name.' - Hold '.$value->id. '</option>';
+    foreach ($hold_cart as $key => $value) {
+        $hold_option .= '<option value="'. $value->created_at .'"> Cart No.'.$value->created_at. '</option>';
     }
     $option_btn = '<li><button class="btn_cate" cate_id = "all">All Categories</button></li>';
     foreach ($categories as $key=>$item){
@@ -109,11 +110,11 @@
                         <!-- </div> -->
                     </th>
                     <th>
-                        <select class="selectpicker" id="select_customer" data-live-search="true">
+                        <select name="select_customer" class="selectpicker" id="select_customer" data-live-search="true">
                             @php echo $customer_option @endphp   
                         </select>
                         <button class="btn-xs btn-warning" id="btn-addNewCus"><span class="voyager-plus"> Add New</span></button>
-                        <button onclick="clear_cart();" class="btn-xs btn-danger" id="btn-reload"><span class="voyager-trash"> Clear Cart</span></button>
+                        <button onclick="clear_cart(0);" class="btn-xs btn-danger" id="btn-reload"><span class="voyager-trash"> Clear Cart</span></button>
                         <span style="float: right; padding-top:5px;">Rate: $1 = <?php echo $rate_kh->rate ." ". $rate_kh->symbol ?></span>
                     </th>
                 </tr>
@@ -140,9 +141,17 @@
                             <span class="btn" id="add_discount">Discount(%)</span>
                             <span class="btn" id="add_cupon">Cupon($)</span>
                             <span class="btn" id="add_delivery_fee">Delivery Fee($)</span>
+                            <span class="btn" id="add_date">Date</span>
                         </div>
                             
                         <div class="space"></div>
+                        <div class="form-group" id="div_add_date" style="display:none;">
+                            <div style="height:20px;"></div>
+                            <label class="col-sm-4 col-form-label">Date:</label>
+                            <div class="col-sm-8">
+                                <input type="date" class="form-control" id="sale_date" value="<?php echo date("Y-m-d");?>">
+                            </div>  
+                        </div>
                         <div class="form-group">
                             <label class="col-sm-4 col-form-label">Subtotal ($):</label>
                             <div class="col-sm-8">
@@ -186,7 +195,8 @@
                             </div>  
                         </div>
                         <div class="col-md-6">
-                            <button class="btn btn-warning" id="btn-hold"><span class="glyphicon glyphicon-download"> Hold Order</span></button>
+                            <button class="btn btn-warning" id="btn-hold"><span class="glyphicon glyphicon-download"> Hold Cart</span></button>
+                            <button class="btn btn-warning" id="btn-select_hold"><span class="glyphicon glyphicon-download"> Select Hold Cart</span></button>
                         </div>
                         <div class="col-md-6">
                             <button class="btn btn-success" id="btn-check-out" style="float:right;"><span class="glyphicon glyphicon-check"> Check Out</span></button>
@@ -199,7 +209,139 @@
 @stop
 
 @section('content')
-    
+
+{{-- Start Modal New Customer --}}
+<div class="modal fade modal-customer" id="modal-customer">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title"><i class="voyager-list-add"></i> Add New Customer</h4>
+            </div>
+            <div class="modal-body">
+                <div class="container">
+                    <h2>Customer Info</h2>
+                    <form class="form-horizontal" action="">
+                        <div class="form-group">
+                            <label class="control-label col-sm-4" for="new_customer_name">Customer name</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="new_customer_name">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-sm-4" for="new_address">Customer address</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="new_address">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-sm-4" for="new_contact">Customer contact</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="new_contact">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save_customer">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{-- End  modal new customer --}}
+
+{{-- Start Modal Hold Cart --}}
+<div class="modal fade modal-hold-cart" id="modal-hold-cart">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title"><i class="voyager-list-add"></i> Select Hold Carts</h4>
+            </div>
+            <div class="modal-body">
+                <div class="container">
+                    <h2>Hold Cart Info</h2>
+                    <select id="select-hold-cart" name="select-hold-cart" class="selectpicker form-control">
+                        @php
+                            echo $hold_option;
+                        @endphp
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="remove_hold">Remove hold</button>
+                <button type="button" class="btn btn-primary" id="add_to_cart">Add to cart</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{-- End  modal Hold Cart --}}
+
+{{-- Start modal payment --}}
+<div class="modal fade modal-payment" id="modal-payment">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title"><i class="voyager-warning"></i> Payment Form</h4>
+            </div>
+            <div class="modal-body">
+                <div class="container">
+                    <h2>Payment Info</h2>
+                    <form class="form-horizontal" action="">
+                        <div class="form-group">
+                            <label class="control-label col-sm-4" for="amount_due">Amount_Due: ($_USD)</label>
+                            <div class="col-sm-3">
+                            <input type="text" class="form-control" id="amount_due" readonly value="<?php  ?>">
+                            </div>
+                            <div class="col-sm-3">
+                            <input type="text" class="form-control" id="amount_due_kh" readonly>
+                            </div>
+                            <span>(៛_KHR)</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-sm-4" for="amount_paid">Amount_Paid: ($_USD)</label>
+                            <div class="col-sm-3">          
+                            <input type="text" class="form-control" id="amount_paid" value="0">
+                            </div>
+                            <div class="col-sm-3">          
+                                <input type="text" class="form-control" id="amount_paid_kh" value="0">
+                            </div>
+                            <span>(៛_KHR)</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-sm-4" for="balance">Balance: ($_USD)</label>
+                            <div class="col-sm-3">          
+                            <input type="text" class="form-control" id="balance" readonly>
+                            </div>
+                            <div class="col-sm-3">          
+                                <input type="text" class="form-control" id="balance_kh" readonly>
+                            </div>
+                            <span>(៛_KHR)</span>
+                        </div>
+                        <div style="float:right;">
+                            <input type="checkbox" id="print_invoice" name="print_invoice" value="1">
+                            <label for="print_invoice"> Print Invoice</label><br>
+                            <input type="checkbox" id="print_delivery" name="print_delivery" value="2">
+                            <label for="print_delivery"> Print Delivery Card</label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="paid">Paid</button>
+                <button type="button" class="btn btn-warning" id="debt">Debt</button>
+            </div>
+        </div>
+        
+    </div>
+</div>
+<!-- End modal payment -->
+
     {{-- invoice print --}}
     <div id="invoice_print" style="border: black solid 1px; width:210mm; height:auto; display:none;"> {{-- height:297mm --}}
         <table class="table">
@@ -346,95 +488,6 @@
     </div>
     <!-- End Delete File Modal -->
 
-    <div class="modal fade modal-payment" id="payment_modal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                    <h4 class="modal-title"><i class="voyager-warning"></i> Payment Form</h4>
-                </div>
-                <div class="modal-body">
-                    <div class="container">
-                        <h2>Payment Info</h2>
-                        <form class="form-horizontal" action="">
-                            <div class="form-group">
-                                <label class="control-label col-sm-4" for="amount_due">Amount_Due: ($_USD)</label>
-                                <div class="col-sm-3">
-                                <input type="text" class="form-control" id="amount_due" disabled value="<?php  ?>">
-                                </div>
-                                <div class="col-sm-3">
-                                <input type="text" class="form-control" id="amount_due_kh" disabled>
-                                </div>
-                                <span>(៛_KHR)</span>
-                            </div>
-                            <div class="form-group">
-                                <label class="control-label col-sm-4" for="amount_paid">Amount_Paid: ($_USD)</label>
-                                <div class="col-sm-3">          
-                                <input type="text" class="form-control" id="amount_paid" value="0">
-                                </div>
-                                <div class="col-sm-3">          
-                                    <input type="text" class="form-control" id="amount_paid_kh" value="0">
-                                </div>
-                                <span>(៛_KHR)</span>
-                            </div>
-                            <div class="form-group">
-                                <label class="control-label col-sm-4" for="balance">Balance: ($_USD)</label>
-                                <div class="col-sm-3">          
-                                <input type="text" class="form-control" id="balance" disabled>
-                                </div>
-                                <div class="col-sm-3">          
-                                    <input type="text" class="form-control" id="balance_kh" disabled>
-                                </div>
-                                <span>(៛_KHR)</span>
-                            </div>
-                            <div style="float:right;">
-                                <input type="checkbox" id="print_invoice" name="print_invoice" value="1">
-                                <label for="print_invoice"> Print Invoice</label><br>
-                                <input type="checkbox" id="print_delivery" name="print_delivery" value="2">
-                                <label for="print_delivery"> Print Delivery Card</label>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="paid">Paid</button>
-                    <button type="button" class="btn btn-warning" id="debt">Debt</button>
-                </div>
-            </div>
-            
-        </div>
-    </div>
-    <!-- End Payment Modal -->
-
-    <div class="modal fade modal-poduct" id="product_modal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                    <h4 class="modal-title"><i class="voyager-list-add"></i> Add New Product</h4>
-                </div>
-                <div class="modal-body">
-                    <div class="container">
-                        <h2>Product Info</h2>
-                        <form class="form-horizontal" action="">
-                            <div class="form-group">
-                                <label class="control-label col-sm-4" for="new_product_name">New_Product_name</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" id="new_product_name">
-                                </div>
-                            </div>
-                            
-                        </form>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="save_product">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
 @stop
 
 @section('javascript')
@@ -442,7 +495,7 @@
         
         var pro_i = 1;
         var pro_list = [];
-
+        var total_qty = 0;
         function remove_item(div_id){
             $('#div_row'+div_id).remove();
             pro_i -= 1;
@@ -457,21 +510,63 @@
             subtotal();
         };
 
-        $('#add_discount, #add_cupon, #add_delivery_fee').on('click',function(){
+        $('#add_discount, #add_cupon, #add_delivery_fee, #add_date').on('click',function(){
             var div_id ='div_'+ $(this).attr('id');
             document.getElementById(div_id).style.display = "inline";
         });
 
-       function clear_cart() {
-            if (confirm('Are you sure ! Clear Cart?')) {
+       function clear_cart(force) {
+            if (force==0){
+                if (confirm('Are you sure ! Clear Cart?')) {
+                    pro_i = 1;
+                    pro_list = [];
+                    $('#cart_list').empty();
+                    $('#discount, #cupon, #delivery_fee, #tax_vat, #subtotal, #grand_total').val(0);
+                } else {
+                    return false;
+                }   
+            }else{
                 pro_i = 1;
                 pro_list = [];
                 $('#cart_list').empty();
                 $('#discount, #cupon, #delivery_fee, #tax_vat, #subtotal, #grand_total').val(0);
-            } else {
-                return false;
-            }   
+            }
+            subtotal();
        };
+       $('#btn-addNewCus').on('click', function(){
+            $('#modal-customer').modal('show');
+       });
+       $('#save_customer').on('click', function(){
+            var customer_name = $('#new_customer_name').val();
+            var customer_address = $('#new_address').val();
+            var customer_contact = $('#new_contact').val();
+            var url = '{{ url('createcustomer') }}';
+            $.ajax({
+            url:url,
+            method:'POST',
+            data:{
+                    customer_name:customer_name,
+                    customer_address:customer_address,
+                    customer_contact:customer_contact
+                },
+            success:function(response){
+                if(response.success){
+                    var customer_id = response.customer_id;
+                    $('#select_customer').append('<option value="'+customer_id+'">'+customer_name+' - '+customer_address+' - '+customer_contact+'</option>');
+                    $('select[name=select_customer]').val(customer_id);
+                    $('.selectpicker').selectpicker('refresh');
+                    $('#modal-customer').modal('hide');
+                    toastr.success(response.message,"Create New Customer");
+                    $('#new_customer_name').val('');
+                    $('#new_address').val('');
+                    $('#new_contact').val('');
+                }
+            },
+            error:function(error){
+                console.log(error)
+            }
+            });
+        });
        $('.btn_cate').on('click', function(){
             var cate_id = $(this).attr('cate_id');
             if(cate_id == 'all'){
@@ -514,7 +609,7 @@
                 $('#cart_list').append('<div class="div_row panel-info" id="div_row'+id+'">'+
                                 '<div class="panel-heading">'+
                                 '<span class="col-sm-1 no_index" id="no_index'+pro_i+'">'+pro_i+'</span>'+
-                                '<a style="text-decoration: none; white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" data-toggle="collapse" href="#collapse'+id+'" class="col-sm-6">'+pro_name+'</a>'+   
+                                '<a id="product_id'+id+'" style="text-decoration: none; white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" data-toggle="collapse" href="#collapse'+id+'" class="col-sm-6 pro_row">'+pro_name+'</a>'+   
                                 '<span class="col-sm-2 qty_row" id="qty'+id+'">1</span>'+
                                 '<span class="col-sm-2 amount_row" id="amount'+id+'">'+pro_price+'</span>'+
                                 '<button onclick="remove_item('+id+')" id="remove'+id+'" class="glyphicon glyphicon-remove-sign"></button>'+
@@ -588,7 +683,7 @@
                         });
                     }
                 }else{
-                        alert("Product not found!");
+                        toastr.error("Product not found!","Invalid Barcode");
                     }
                 
             }
@@ -596,7 +691,6 @@
         function subtotal(){
             //subtotal
             var total_amount = 0;
-            var total_qty = 0;
             var discount = 0;
             var cupon = 0;
             var delivery_fee = 0;
@@ -610,15 +704,194 @@
             delivery_fee = $('#delivery_fee').val() - 0;
             tax_vat = ($('#tax_vat').val() * total_amount) / 100;
             $('#grand_total').val(total_amount - discount - cupon + delivery_fee + tax_vat);
-            // $(".qty_row").filter(function() {
-            //     total_qty += ($(this).text()-0);
-            // });
+
+            if(pro_i>1){
+                $('#btn-hold').show();
+                $('#btn-select_hold').hide();
+            }else{
+                $('#btn-hold').hide();
+                $('#btn-select_hold').show();
+            }
         };
+        $('#btn-select_hold').on('click', function(){
+            $('#modal-hold-cart').modal('show');
+        });
+        $('#add_to_cart').on('click', function(){
+            $('#modal-hold-cart').modal('hide');
+            var cart_select = $('#select-hold-cart').val();
+            var cart_list = @php $cart = DB::table('hold_carts')->select('product_id','unit_price','quantity','discount','amount','created_at')->get(); echo $cart @endphp;
+            var new_cart_list = cart_list.filter(function(cart_list){ return (cart_list.created_at==cart_select);});
+            
+            $.each(new_cart_list, function( index, value ) {
+                var pro_id = '#pro_id_'+value['product_id'];
+                $(pro_id).click();
+
+                var qty_id = '#quantity'+value['product_id'];
+                $(qty_id).val(value['quantity']);
+                var span_qty = '#qty'+value['product_id'];
+                $(span_qty).text(value['quantity']);
+
+                var discount_id = '#discount'+value['product_id'];
+                $(discount_id).val(value['discount']);
+
+                var span_amount = '#amount'+value['product_id'];
+                $(span_amount).text(value['amount']);
+            });
+            subtotal();
+        });
+
+        $('#remove_hold').on('click', function(){
+            var cart_no = $('#select-hold-cart').val();
+            var url = '{{ url('holdsaledelete') }}';
+                $.ajax({
+                url:url,
+                method:'POST',
+                data:{
+                    cart_no:cart_no
+                    },
+                success:function(response){
+                    if(response.success){
+                        toastr.info(response.message);
+                        // clear_cart(1);
+                        setTimeout(function(){
+                            window.location.reload();
+                        }, 900);
+                    }
+                },
+                error:function(error){
+                    console.log(error)
+                }
+            });
+        });
+        $('#btn-hold').on('click', function(){
+            if(pro_i>1){
+                var hold_carts = new Array();
+                $("#cart_list .div_row").each(function() {
+                    var row = $(this);
+                    var sr = {};
+                    sr.product_id = row.find("a:eq(0)").attr('id').slice(10);
+                    sr.quantity = row.find("span:eq(1)").text();
+                    sr.unit_price = row.find("input:eq(1)").val();
+                    sr.discount = row.find("input:eq(2)").val();
+                    sr.amount = row.find("span:eq(2)").text();
+                    hold_carts.push(sr);
+                });
+                var url = '{{ url('holdsaleinsert') }}';
+                $.ajax({
+                url:url,
+                method:'POST',
+                data:{
+                    hold_cart_arr:hold_carts
+                    },
+                success:function(response){
+                    if(response.success){
+                        toastr.success(response.message,"Your cart is saving in hold!");
+                        // clear_cart(1);
+                        setTimeout(function(){
+                            window.location.reload();
+                        }, 900);
+                    }
+                },
+                error:function(error){
+                    console.log(error)
+                }
+                });
+            }else{
+                toastr.error("No product in your cart!");
+            }
+            
+        });
         
+        $('#btn-check-out').on('click', function(){
+            if(pro_i>1){
+                $('#paid').hide();
+                $('#debt').show();
+                $('#modal-payment').modal('show');
+                $('#amount_due').val($('#grand_total').val());
+                $('#amount_due_kh').val($('#grand_total').val()*"<?php echo $rate_kh->rate ?>");
+                $('#balance').val(0-($('#grand_total').val()));
+                $('#balance_kh').val(0-($('#amount_due_kh').val()));
+            }else{
+                toastr.error("No product in your cart!");
+            }
+            
+        });
+
+        $('#amount_paid, #amount_paid_kh').on('input', function(){
+            var amount_due = $('#amount_due').val()-0;
+            var amount_paid = $('#amount_paid').val()-0;
+            var rate = "<?php echo $rate_kh->rate ?>";
+            $('#balance').val(amount_paid-amount_due);
+            $('#balance_kh').val($('#balance').val()*rate);
+            if((amount_paid) >= (amount_due)){
+                $('#amount_paid_kh').attr('readonly','ture');
+                $('#amount_paid_kh').val(0);
+                $('#paid').show();
+                $('#debt').hide();
+            }else{
+                $('#amount_paid_kh').removeAttr('readonly');
+                var condit = ($('#amount_paid_kh').val()-0) + ($('#balance_kh').val()-0);
+                if(condit>=0){
+                    $('#balance').val(0);
+                    $('#paid').show();
+                    $('#debt').hide();
+                }else{
+                    $('#paid').hide();
+                    $('#debt').show();
+                }
+                $('#balance_kh').val(condit);
+            }  
+        });
+
+        $('#paid, #debt').on('click', function(){
+            
+            $(".qty_row").filter(function() {
+                total_qty += ($(this).text()-0);
+            });
+            var sale_records = new Array();
+            $("#cart_list .div_row").each(function() {
+                var row = $(this);
+                var sr = {};
+                sr.product_id = row.find("a:eq(0)").attr('id').slice(10);
+                sr.quantity = row.find("span:eq(1)").text();
+                sr.unit_price = row.find("input:eq(1)").val();
+                sr.discount = row.find("input:eq(2)").val();
+                sr.amount = row.find("span:eq(2)").text();
+                sale_records.push(sr);
+            });
+            // console.log('<?php echo $edit ?>');
+            var url = '{{ url('saleinsert') }}';
+            $.ajax({
+            url:url,
+            method:'POST',
+            data:{
+                    id_update: '<?php echo $edit ?>',
+                    sale_date:$('#sale_date').val(),
+                    customer_id:$('#select_customer').val(),
+                    total_qty:total_qty,
+                    amount:$('#subtotal').val(),
+                    seller_id:'<?php echo $userId ?>',
+                    delivery_fee:$('#delivery_fee').val(),
+                    discount:$('#discount').val(),
+                    net_amount:$('#grand_total').val(),
+                    sale_record_arr:sale_records
+                },
+            success:function(response){
+                if(response.success){
+                    toastr.success(response.message,"Sale data saved!");
+                    $('#modal-payment').modal('hide');
+                    clear_cart(1);
+                }
+            },
+            error:function(error){
+                console.log(error)
+            }
+            });
+        });
 
 
         $('document').ready(function () {
-
+            subtotal();
         });
         
     </script>
