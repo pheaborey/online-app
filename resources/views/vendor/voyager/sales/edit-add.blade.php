@@ -3,6 +3,7 @@
     $add  = is_null($dataTypeContent->getKey());
     $userId = Auth::id();
     $rate_kh = DB::table('currencies')->select('rate','symbol')->where('id','1')->first();
+    $rate_tax = DB::table('currencies')->select('rate','symbol')->where('short_name','VAT')->first();
 
     $hold_cart = DB::table('hold_carts')->select('created_at')->groupBy('created_at')->get();
     $products = DB::table('Products')
@@ -19,7 +20,6 @@
                         ->select('sale_id','product_id','quantity','unit_price','discount','amount','created_at')
                         ->get();
     $sale = DB::table('Sales')->select('*')->get();
-    $default_row = 5;
     $tr = '';
     if ($edit == "") {//$edit is a general variable of voyarger for check edit or add
         // echo "Add";
@@ -30,7 +30,7 @@
         }else{
             $invoice_no = 0;
         }
-        
+        $src_url = '../../public/storage/';
     }else{
         // echo "Edit".$edit;
         $url = $_SERVER['REQUEST_URI'];
@@ -42,14 +42,14 @@
         $sale_record = DB::table('Sale_records')
                         ->select('sale_id','product_id','quantity','unit_price','discount','amount','created_at')
                         ->where('sale_id',$edit)->get();
-        $default_row = $sale_record->count();
         $invoice_no = $edit;
+        $src_url = '../../../public/storage/';
     }
     $menu = '';
     foreach ($products as $key=>$item){
         $option .= '<option value="'. $item->id .'">'. $item->product_name . '</option>';
         $menu .='<div id="pro_id_'.$item->id.'" class="col-sm-2 btn id_pro" cate_id="'.$item->product_type.'" id_pro="'.$item->id.'" name_pro="'.$item->product_name.'" price_pro = "'.$item->sale_price.'">'.
-                    '<img src="../../public/storage/'.$item->product_image.'" style="width:100%;">'.
+                    '<img src="'.$src_url.''.$item->product_image.'" style="width:100%;">'.
                     '<span class="caption">'.
                     '<p style="font-size:11px;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;text-align:center">'. $item->product_name . '</p>'.
                     '</span></div>';
@@ -181,9 +181,9 @@
                         </div>
                         <div class="form-group">
                             <div style="height:20px;"></div>
-                            <label class="col-sm-4 col-form-label">VAT (%):</label>
+                            <label class="col-sm-4 col-form-label">VAT (<?php echo $rate_tax->rate . $rate_tax->symbol ?>):</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="tax_vat" value=0>
+                                <input type="text" class="form-control" id="tax_vat" value=0 readonly>
                             </div>  
                         </div>
                         
@@ -322,11 +322,13 @@
                             </div>
                             <span>(៛_KHR)</span>
                         </div>
-                        <div style="float:right;">
+                        <div align='center'>
                             <input type="checkbox" id="print_invoice" name="print_invoice" value="1">
-                            <label for="print_invoice"> Print Invoice</label><br>
+                            <label for="print_invoice"> Print Invoice</label>
                             <input type="checkbox" id="print_delivery" name="print_delivery" value="2">
                             <label for="print_delivery"> Print Delivery Card</label>
+                            <input type="checkbox" id="print_receipt" name="print_receipt" value="3" checked>
+                            <label for="print_receipt"> Print Receipt</label>
                         </div>
                     </form>
                 </div>
@@ -342,129 +344,174 @@
 </div>
 <!-- End modal payment -->
 
-    {{-- invoice print --}}
-    <div id="invoice_print" style="border: black solid 1px; width:210mm; height:auto; display:none;"> {{-- height:297mm --}}
-        <table class="table">
-            <tr>
-                <center><h4>{{setting('admin.company_name')}}</h4></center>
-                <center><h6>Shop {{setting('admin.company_contact')}}</h6></center>
-                <center><h6>{{setting('admin.company_bank_account')}}</h6></center>
-            </tr>
-            <tr>
-                <center><h5>Sale Invoice</h5></center>
-            </tr>
-            <tr>
-                <td colspan="3">Customer Name:<span class="cus_name">Customer name here </span></td>
-                <td></td><td></td>
-                <td>Invoice Code: <span class="invoice_no"><?php echo $invoice_no ?></span></td>
-            </tr>
-            <tr>
-                <td colspan="3">Tel: <span class="cus_tel">Telephone here</span></td>
-                <td></td><td></td>
-                <td>Sale Date: <span class="s_date">Sale Date here</span></td>
-            </tr>
-            <tr>
-                <td colspan="3">Address: <span class="cus_address">Address here</span></td>
-                <td></td><td></td>
-                <td>Seller: <span class="s_seller">Seller here</span></td>
-            </tr>
-        </table>
-        <table class="table">
-            <thead>         
+{{-- invoice print --}}
+<div id="invoice_print" style="border: black solid 1px; display:none" class="container">
+    <div class="container">
+        <h2>{{setting('admin.company_name')}}</h2>
+        <p>Address: {{setting('admin.company_address')}}</p>
+        <p>Contact: {{setting('admin.company_contact')}}</p>
+        <p>Bank Account:{{setting('admin.company_bank_account')}}</p>
+        <p><strong>Billed to : </strong> </p>
+        <div class="col-xs-6">
+            <p class="customer">................Customer name here.............</p>
+        </div>
+        <div class="col-xs-6" align="right">
+            <p class="invoice_no">Invoice number: <?php echo $invoice_no ?> </p>
+            <p class="invoice_date"> Invoice date : ..................</p>
+            <p class="due_date"> Due date : <?php echo date('Y-m-d') ?></p>
+        </div>
+        <table class="table table-bordered">
+            <thead>
                 <tr>
-                    <th>No.</th>
-                    <th>Product Name</th>
-                    <th>QTY</th>
-                    <th>Price</th>
+                    <th>#</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Unit price</th>
                     <th>Discount</th>
                     <th>Amount</th>
                 </tr>
             </thead>
-            <tbody id="tbody_invoice">
-                
+            <tbody class="tbody_record_print">
+                <tr>
+                    <td>1</td>
+                    <td>Anna</td>
+                    <td>Pitt</td>
+                    <td>35</td>
+                    <td>New York</td>
+                    <td>USA</td>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>Anna</td>
+                    <td>Pitt</td>
+                    <td>35</td>
+                    <td>New York</td>
+                    <td>USA</td>
+                </tr>
             </tbody>
-            <tfoot style="font-weight: bold">
+            <tfoot>
                 <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>Total QTY</td>
-                    <td><p class="total_qty_inv"></p></td>
+                    <td colspan="4"></td>
+                    <td>
+                        <p>Subtotal:</p>
+                        <p>Discount(%):</p>
+                        <p>Cupon($):</p>
+                        <p>Delivery Fee($):</p>
+                        <p>Tax VAT(10%)</p>
+                        <p>Amount due:</p>
+                    </td>
+                    <td class="td_record_print">
+                    </td>
                 </tr>
                 <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>Total Amount</td>
-                    <td><p class="total_amount_inv"></p></td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>Discount</td>
-                    <td><p class="total_discount_inv"></p></td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>Amount Due</td>
-                    <td><p class="amount_due_inv"></p></td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>Balance</td>
-                    <td><p class="balance_inv"></p></td>
-                </tr>
-                <tr>
-                    <td colspan="6"><center>{{setting('admin.company_thanks')}}</center></td>
+                    <td colspan="4">Signature</td>
+                    <td>Date</td>
                 </tr>
             </tfoot>
         </table>
     </div>
-     {{-- delivery card print --}}
-     <div id="delivery_print" style="border: black solid 1px; width:80mm; height:100mm; display:none;"> {{-- height:297mm --}}
-        <table class="table">
-            <tr>
-                <center>
-                    <h4>{{setting('admin.company_name')}}</h4>
-                    <h6>Shop {{setting('admin.company_contact')}}</h6>
-                    <h6>{{setting('admin.company_bank_account')}}</h6>
-                </center>
-            </tr>
-            <tr>
-                <td>Code: <span id="invoice_no" class="invoice_no"><?php echo $invoice_no ?></span></td>
-                <td>Date: <span id="s_date" class="s_date">........</span></td>
-            </tr>
-            <tr>
-                <td colspan="2">FB Name:<span id="cus_name" class="cus_name">........</span></td>
-            </tr>
-            <tr>
-                <td colspan="2">Tel: <span class="cus_tel" id="cus_tel" style="font-size:14px ;font-weight: bold">..........</span></td>
-            </tr>
-            <tr>
-                <td colspan="2">Address: 
-                    <span id="cus_address" class="cus_address" style="font-size:14px ;font-weight: bold">.................................... ..................................................................</span>
-                </td>
-            </tr>
-            <tr>
-                <td>Discount: $<span class="total_discount_inv">.......</span></td>
-                <td>Delivery: $<span class="delivery_fee_inv">.......</span></td>
-            </tr>
-            <tr>
-                <td colspan="2" style="font-size:14px ;font-weight: bold">Amount Due: $<span class="amount_due_inv">.........</span></td>
-            </tr>
-            <tr><td colspan="2"><center>{{setting('admin.company_thanks')}}</center></td></tr>
+</div>
+
+{{-- receipt print --}}
+<div id="receipt_print" style="border: black solid 1px; display:none" class="container">
+    <div class="container">
+        <div class="col-xs-6">
+            <h3>{{setting('admin.company_name')}}</h3>
+            <p>Address: {{setting('admin.company_address')}}</p>
+            <p>Contact: {{setting('admin.company_contact')}}</p>
+        </div>
+        <div class="col-xs-6" align="right">
+            <p class="invoice_no">Receipt No: <?php echo $invoice_no ?> </p>
+            <p class="invoice_date"> Date : ..................</p>
+            <p class="customer"> Customer : ..................</p>
+        </div>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Description</th>
+                    <th>QTY</th>
+                    <th>Price</th>
+                    <th>Dis(%)</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody class="tbody_record_print">
+                <tr>
+                    <td>1</td>
+                    <td>Anna</td>
+                    <td>Anna</td>
+                    <td>35</td>
+                    <td>New York</td>
+                    <td>USA</td>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>Anna</td>
+                    <td>Anna</td>
+                    <td>35</td>
+                    <td>New York</td>
+                    <td>USA</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4"></td>
+                    <td>
+                        <p>Subtotal:</p>
+                        <p>Discount(%):</p>
+                        <p>Cupon($):</p>
+                        <p>Delivery Fee($):</p>
+                        <p>Tax VAT(10%)</p>
+                        <p>Amount due:</p>
+                    </td>
+                    <td class="td_record_print">
+                    </td>
+                    
+                </tr>
+                <tr>
+                    <td colspan="5">Thanks for your support!</td>
+                </tr>
+            </tfoot>
         </table>
     </div>
+</div>
+
+{{-- delivery card print --}}
+<div id="delivery_print" style="border: black solid 1px; width:80mm; height:100mm; display:none;"> {{-- height:297mm --}}
+<table class="table">
+    <tr>
+        <center>
+            <h4>{{setting('admin.company_name')}}</h4>
+            <h6>Shop {{setting('admin.company_contact')}}</h6>
+            <h6>{{setting('admin.company_bank_account')}}</h6>
+        </center>
+    </tr>
+    <tr>
+        <td>Code: <span id="invoice_no" class="invoice_no"><?php echo $invoice_no ?></span></td>
+        <td>Date: <span id="s_date" class="s_date"><?php echo date('Y-m-d') ?></span></td>
+    </tr>
+    <tr>
+        <td colspan="2"><span id="cus_name" class="customer">...Customer.....</span></td>
+    </tr>
+    <tr>
+        <td colspan="2"><span class="cus_tel" id="cus_tel" style="font-size:14px ;font-weight: bold">....................................</span></td>
+    </tr>
+    <tr>
+        <td colspan="2"> 
+            <span id="cus_address" class="cus_address" style="font-size:14px ;font-weight: bold">..................................................................</span>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2">Delivery Fee: $<span class="delivery_fee_inv">....................................</span></td>
+    </tr>
+    <tr>
+        <td colspan="2" style="font-size:14px ;font-weight: bold">Amount Due: $<span class="amount_due_inv">....................................</span></td>
+    </tr>
+    <tr><td colspan="2"><center>{{setting('admin.company_thanks')}}</center></td></tr>
+</table>
+</div>
+
     <div class="modal fade modal-danger" id="confirm_delete_modal">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -578,7 +625,7 @@
             $('#search_product').val('');
         });
 
-       $('.id_pro').on('click', function(){
+        $('.id_pro').on('click', function(){
             var id = $(this).attr('id_pro');
             var pro_name = $(this).attr('name_pro');
             var pro_price = $(this).attr('price_pro');
@@ -694,7 +741,7 @@
             var discount = 0;
             var cupon = 0;
             var delivery_fee = 0;
-            var tax_vat = 0;
+            var tax_vat = @php echo $rate_tax->rate; @endphp;
             $(".amount_row").filter(function() {
                 total_amount += ($(this).text()-0);
             });
@@ -702,7 +749,8 @@
             discount = ($('#discount').val() * total_amount) / 100;
             cupon = $('#cupon').val() - 0;
             delivery_fee = $('#delivery_fee').val() - 0;
-            tax_vat = ($('#tax_vat').val() * total_amount) / 100;
+            tax_vat = (tax_vat * total_amount) / 100;
+            $('#tax_vat').val(tax_vat);
             $('#grand_total').val(total_amount - discount - cupon + delivery_fee + tax_vat);
 
             if(pro_i>1){
@@ -719,7 +767,7 @@
         $('#add_to_cart').on('click', function(){
             $('#modal-hold-cart').modal('hide');
             var cart_select = $('#select-hold-cart').val();
-            var cart_list = @php $cart = DB::table('hold_carts')->select('product_id','unit_price','quantity','discount','amount','created_at')->get(); echo $cart @endphp;
+            var cart_list = @php $cart = DB::table('hold_carts')->where('cart_type','sale')->select('product_id','unit_price','quantity','discount','amount','created_at')->get(); echo $cart @endphp;
             var new_cart_list = cart_list.filter(function(cart_list){ return (cart_list.created_at==cart_select);});
             
             $.each(new_cart_list, function( index, value ) {
@@ -848,8 +896,17 @@
             $(".qty_row").filter(function() {
                 total_qty += ($(this).text()-0);
             });
+            var subtotal = $('#subtotal').val();
+            var discount = $('#discount').val();
+            var cupon = $('#cupon').val();
+            var delivery_fee = $('#delivery_fee').val();
+            var tax_vat = $('#tax_vat').val();
+            var amount_due = $('#grand_total').val();
+            var sale_date = $('#sale_date').val();
             var sale_records = new Array();
-            $("#cart_list .div_row").each(function() {
+            $('.tbody_record_print').empty();
+            $('.td_record_print').empty();
+            $("#cart_list .div_row").each(function(index) {
                 var row = $(this);
                 var sr = {};
                 sr.product_id = row.find("a:eq(0)").attr('id').slice(10);
@@ -857,9 +914,30 @@
                 sr.unit_price = row.find("input:eq(1)").val();
                 sr.discount = row.find("input:eq(2)").val();
                 sr.amount = row.find("span:eq(2)").text();
-                sale_records.push(sr);
+                sale_records.push(sr); 
+                $('.tbody_record_print').append(
+                    '<tr><td>'+((index-0)+1)+'</td>'+
+                        '<td>'+ row.find("a:eq(0)").text() +'</td>'+
+                        '<td>'+sr.quantity+'</td>'+
+                        '<td>'+sr.unit_price+'</td>'+
+                        '<td>'+sr.discount+'</td>'+
+                        '<td>'+sr.amount+'</td>'+
+                    '</tr>'
+                );
             });
-            // console.log('<?php echo $edit ?>');
+            $('.td_record_print').append(
+                '<p>'+ subtotal +'</p>'+
+                '<p>'+ discount +'</p>'+
+                '<p>'+ cupon +'</p>'+
+                '<p>'+ delivery_fee +'</p>'+
+                '<p>'+ tax_vat +'</p>'+
+                '<p>'+ amount_due +'</p>'
+            );
+            $('.amount_due_inv').text(amount_due);
+            var customer = $("#select_customer option:selected").text();
+            $('.invoice_date').text('Sale Date: '+sale_date);
+            $('.customer').text('Customer: '+customer);
+            // // console.log('<?php echo $edit ?>');
             var url = '{{ url('saleinsert') }}';
             $.ajax({
             url:url,
@@ -873,14 +951,32 @@
                     seller_id:'<?php echo $userId ?>',
                     delivery_fee:$('#delivery_fee').val(),
                     discount:$('#discount').val(),
+                    cupon:$('#cupon').val(),
+                    tax_vat:$('#tax_vat').val(),
                     net_amount:$('#grand_total').val(),
                     sale_record_arr:sale_records
                 },
             success:function(response){
                 if(response.success){
-                    toastr.success(response.message,"Sale data saved!");
+                    toastr.success(response.message,"Sale data!");
                     $('#modal-payment').modal('hide');
                     clear_cart(1);
+                    if($("#print_invoice").prop('checked') == true){
+                        printMe('invoice_print');
+                    }
+                    if($("#print_delivery").prop('checked') == true){
+                        printMe('delivery_print');
+                    }
+                    if($("#print_receipt").prop('checked') == true){
+                        printMe('receipt_print');
+                    }
+                    if(response.redirect){
+                        setTimeout(function(){
+                            window.location.href = '../';
+                        }, 900);
+                    }else{
+                        window.location.reload();
+                    }
                 }
             },
             error:function(error){
@@ -889,8 +985,37 @@
             });
         });
 
-
         $('document').ready(function () {
+            var edit_id = '@php echo $edit @endphp';
+            if(edit_id>0){
+                var edit_list = @php $cart = DB::table('sales')
+                                        ->join('sale_records', 'sales.id', '=', 'sale_records.sale_id')
+                                        ->select('customer_id','sales.discount as total_discount','tax_vat','delivery_fee','cupon','sale_date','sale_records.*')
+                                        ->where('sales.id','=',$edit)->get(); 
+                                echo $cart @endphp;
+
+                $('#discount').val(edit_list[0]['total_discount']);
+                $('#cupon').val(edit_list[0]['cupon']);
+                $('#tax_vat').val(edit_list[0]['tax_vat']);
+                $('#delivery_fee').val(edit_list[0]['delivery_fee']);
+                $('#sale_date').val(edit_list[0]['sale_date']);
+                $('#select_customer').val(edit_list[0]['customer_id']);
+                $.each(edit_list, function( index, value ) {
+                    var pro_id = '#pro_id_'+value['product_id'];
+                    $(pro_id).click();
+
+                    var qty_id = '#quantity'+value['product_id'];
+                    $(qty_id).val(value['quantity']);
+                    var span_qty = '#qty'+value['product_id'];
+                    $(span_qty).text(value['quantity']);
+
+                    var discount_id = '#discount'+value['product_id'];
+                    $(discount_id).val(value['discount']);
+
+                    var span_amount = '#amount'+value['product_id'];
+                    $(span_amount).text(value['amount']);
+                });
+            }
             subtotal();
         });
         

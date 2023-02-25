@@ -51,20 +51,19 @@
                     @endphp
 
                     <div class="col-sm-2">Sale Code: {{ $dataTypeContent['id'] }}</div>
-                    <div class="col-sm-4">Adress: {{ $customers->address }}</div>
-                    <div class="col-sm-3">Customer_Name: {{ $customers->customer_name }}</div>
-                    <div class="col-sm-2">Contact: {{ $customers->contact }}</div>
+                    <div class="col-sm-3">Customer name: {{ $customers->customer_name }}</div>
+                    <div class="col-sm-4">Customer adress: {{ $customers->address }}</div>
+                    <div class="col-sm-2">Customer contact: {{ $customers->contact }}</div>
                     <br>
                     <table class="table-striped">
                         <thead style="background-color:skyblue;">
                           <tr>
                             <th class="col-sm-1">No.</th>
-                            <th class="col-sm-3">Product_Name</th>
-                            <th class="col-sm-1">Quantity</th>
-                            <th class="col-sm-1">Unit_Price</th>
-                            <th class="col-sm-1">Amount</th>
-                            <th class="col-sm-1">Discount</th>
-                            <th class="col-sm-1">Total_Amount</th>
+                            <th class="col-sm-3">Product name</th>
+                            <th class="col-sm-2">Quantity</th>
+                            <th class="col-sm-2">Unit price</th>
+                            <th class="col-sm-2">Discount</th>
+                            <th class="col-sm-2">Amount</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -91,9 +90,9 @@
                                     <td class="col-sm-3">{{ $saleData->product_name }}</td>
                                     <td class="col-sm-1">{{ $saleData->quantity }}</td>
                                     <td class="col-sm-1">{{ $saleData->unit_price }}</td>
-                                    <td class="col-sm-1">{{ $saleData->amount }}</td>
                                     <td class="col-sm-1">{{ $saleData->discount }}</td>
-                                    <td class="col-sm-1">{{ $saleData->amount - $saleData->discount }}</td>
+                                    <td class="col-sm-1">{{ $saleData->amount }}</td>
+                                    
                                 </tr>
                                 <?php $total_qty += $saleData->quantity ;?>
 
@@ -101,52 +100,53 @@
                         </tbody>
                         <thead>
                             <tr>
-                                <td>&nbsp;</td> <!-- Blank Row-->
+                                <td colspan="6"> &nbsp;</td> <!-- Blank Row-->
+                                <td class="col-sm-2"></td>
                             </tr>
                             <tr>
-                                <td colspan="5"></td>
+                                <td colspan="4"></td>
                                 <td class="col-sm-2">Sale Date:</td>
                                 <td class="col-sm-2">{{ $dataTypeContent['created_at'] }}</td>
                             </tr>
                             <tr>
-                                <td colspan="5"></td>
+                                <td colspan="4"></td>
                                 <td class="col-sm-2">Seller:</td>
                                 <td class="col-sm-2">{{ $Sale->name }}</td>
                             </tr>
                             <tr>
-                                <td colspan="5"></td>
+                                <td colspan="4"></td>
                                 <td class="col-sm-2">Total Quantities:</td>
                                 <td class="col-sm-2">{{ $total_qty }} pcs</td>
                             </tr>
                             <tr>
-                                <td colspan="5"></td>
+                                <td colspan="4"></td>
                                 <td class="col-sm-2">Delivery Fee:</td>
                                 <td class="col-sm-2">{{ $dataTypeContent['delivery_fee'] }}</td>
                             </tr>
                             <tr>
-                                <td colspan="5"></td>
-                                <td class="col-sm-2">Discount($):</td>
+                                <td colspan="4"></td>
+                                <td class="col-sm-2">Discount(%):</td>
                                 <td class="col-sm-2">{{ $dataTypeContent['discount'] }}</td>
                             </tr>
                             <tr>
-                                <td colspan="5"></td>
+                                <td colspan="4"></td>
                                 <td class="col-sm-2">Grand Total:</td>
-                                <td class="col-sm-2">{{ $dataTypeContent['total_amount'] }}</td>
+                                <td class="col-sm-2">{{ $dataTypeContent['amount'] }}</td>
                             </tr>
                             
                             <tr>
-                                <td colspan="5"></td>
+                                <td colspan="4"></td>
                                 <td class="col-sm-2">Delivery Expense:</td>
                                 <td class="col-sm-2">{{ $dataTypeContent['forwarder_fee'] }}</td>
                             </tr>
                             
                             <tr>
-                                <td colspan="5"></td>
+                                <td colspan="4"></td>
                                 <td class="col-sm-2">Net Amount:</td>
                                 <td class="col-sm-2">{{ $dataTypeContent['net_amount'] }}</td>
                             </tr>
                             <tr>
-                                <td colspan="5"></td>
+                                <td colspan="4"></td>
                                 <td class="col-sm-2">Balance:</td>
                                 <td class="col-sm-2">{{ $dataTypeContent['balance'] }}</td>
                             </tr>

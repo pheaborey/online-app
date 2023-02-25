@@ -11,77 +11,66 @@ use Illuminate\Http\RedirectResponse;
 
 class PurchaseController extends Controller
 {
-    public function savePo(Request $request)
+    public function savePurchase(Request $request)
     {
         $url = $request->Current_url;
         $values = parse_url($url);
         $host = explode('/Purchases',$values['path']);//cut end
         $redirect = $host[0];
 
-        $supplier_select = $request->Supplier_code;
-        if($supplier_select != 'new_supplier'){
-            $supplier_code = $supplier_select;
-        }else{
-            $id = DB::table('suppliers')->insertGetId([
-                'supplier_name' => $request->Supplier_name,
-                'address' => $request->Supplier_address,
-                'contact' => $request->Supplier_contact,
-            ]);
-            $supplier_code = $id;
-        }
-
         $id_update = $request->Id_update;
         if($id_update > 0){
-            DB::table('Purchases')->where('id',$id_update)->delete();
-            $id = DB::table('Purchases')->insertGetId([
-                'supplier_id' => $supplier_code, //coming from ajax request
-                'total_qty' => $request->Total_quantity,
-                'freight_fee' => $request->Freight_fee,
-                'discount' => $request->Total_discount,
-                'amount' => $request->Total_amount,
-                'visa_fee' => $request->Visa_fee,
-                'other_fee' => $request->Other_fee,
-                'forwarder_fee' => $request->Forwarder_fee,
-                'net_amount' => $request->Net_amount,
-                'purchaser' => $request->Buyer,
-                'purchase_date' => $request->Po_date,
-                'balance' => $request->Balance,
+            DB::table('purchase_records')->where('purchase_id',$id_update)->delete();
+            $id = DB::table('purchases')
+                ->where('id',$id_update)
+                ->update([
+                            'supplier_id' => $request->supplier_id, //coming from ajax request
+                            'total_qty' => $request->total_qty,
+                            'freight_fee' => $request->freight_fee,
+                            'discount' => $request->discount,
+                            'amount' => $request->amount,
+                            'visa_fee' => $request->visa_fee,
+                            'forwarder_fee' => $request->forwarder_fee,
+                            'tax_vat' => $request->tax_vat,
+                            'net_amount' => $request->net_amount,
+                            'purchaser' => $request->purchaser,
+                            'purchase_date' => $request->purchase_date,
+                            'balance' => $request->balance,
             ]);
-            DB::table('Purchases')
-              ->where('id',$id)
-              ->update(['id' => $id_update]);
             $id = $id_update;
             $message = "updated";
+            $redirect = true;
         }else{
             $id = DB::table('Purchases')->insertGetId([
-                'supplier_id' => $supplier_code, //coming from ajax request
-                'total_qty' => $request->Total_quantity,
-                'freight_fee' => $request->Freight_fee,
-                'discount' => $request->Total_discount,
-                'amount' => $request->Total_amount,
-                'visa_fee' => $request->Visa_fee,
-                'other_fee' => $request->Other_fee,
-                'forwarder_fee' => $request->Forwarder_fee,
-                'net_amount' => $request->Net_amount,
-                'purchaser' => $request->Buyer,
-                'purchase_date' => $request->Po_date,
-                'balance' => $request->Balance,
+                'supplier_id' => $request->supplier_id, //coming from ajax request
+                'total_qty' => $request->total_qty,
+                'freight_fee' => $request->freight_fee,
+                'discount' => $request->discount,
+                'amount' => $request->amount,
+                'visa_fee' => $request->visa_fee,
+                'forwarder_fee' => $request->forwarder_fee,
+                'tax_vat' => $request->tax_vat,
+                'net_amount' => $request->net_amount,
+                'purchaser' => $request->purchaser,
+                'purchase_date' => $request->purchase_date,
+                'balance' => $request->balance,
             ]);
             $message = "inserted";
+            $redirect = false;
 
         }
         
 
-        //insert Sale_records
-        $po_records = $request->Po_records;//coming from ajax request
-        foreach($po_records as $k => $data){
+        //insert purchase_records
+        $purchase_records = $request->purchase_record_arr;//coming from ajax request
+        foreach($purchase_records as $k => $data){
             DB::table('purchase_records')->insert([
-                'po_code' => $id, 
-                'product_id' => $data['product_code'],
+                'purchase_id' => $id, 
+                'product_id' => $data['product_id'],
                 'quantity' => $data['quantity'],
                 'cost' => $data['cost'],
                 'sale_price' => $data['sale_price'],
-                'cost_amount' => $data['cost_amount'],
+                'cost_amount' => $data['amount'],
             ]);
         }
 
@@ -91,6 +80,67 @@ class PurchaseController extends Controller
                 'message' => 'Data '.$message.' successfully',
                 'redirect' => $redirect
                 
+            ]
+        );
+    }
+    public function saveSupplier(Request $request)
+    {
+        $id = DB::table('suppliers')->insertGetId([
+            'supplier_name' => $request->supplier_name, //coming from ajax request
+            'address' => $request->supplier_address,
+            'contact' => $request->supplier_contact
+        ]);
+        return response()->json(
+            [
+                'success' => true,
+                'message' => 'Supplier created successfully',
+                'supplier_id' => $id
+            ]
+        );
+    }
+    public function saveProduct(Request $request)
+    {
+        $id = DB::table('products')->insertGetId([
+            'product_name' => $request->product_name, //coming from ajax request
+            'product_code' => $request->product_code,
+            'product_type' => $request->product_type
+        ]);
+        return response()->json(
+            [
+                'success' => true,
+                'message' => 'Supplier created successfully',
+                'product_id' => $id
+            ]
+        );
+    }
+    public function deleteHoldPurchase(Request $request)
+    {
+        DB::table('hold_carts')->where('created_at','=', $request->cart_no)->delete();
+        return response()->json(
+            [
+                'success' => true,
+                'message' => 'Hold cart was deleted successfully',
+            ]
+        );
+    }
+    public function holdPurchase(Request $request)
+    {
+         $hold_carts = $request->hold_cart_arr;
+         foreach($hold_carts as $k => $data){
+             DB::table('hold_carts')->insert([
+                 'product_id' => $data['product_id'],
+                 'quantity' => $data['quantity'],
+                 'unit_price' => $data['unit_price'],
+                 'cost' => $data['cost'],
+                 'amount' => $data['amount'],
+                 'cart_type' =>'purchase'
+             ]);
+         }
+
+        return response()->json(
+            [
+                'success' => true,
+                'message' => 'Your cart was hold successfully',
             ]
         );
     }

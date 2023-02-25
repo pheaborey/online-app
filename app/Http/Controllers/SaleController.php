@@ -27,23 +27,24 @@ class SaleController extends Controller
 
         $id_update = $request->id_update;
         if($id_update > 0){
-            DB::table('Sales')->where('id',$id_update)->delete();
-            $id = DB::table('Sales')->insertGetId([
-                'customer_id' => $customer_code, //coming from ajax request
-                'delivery_fee' => $request->Delivery_fee,
-                'discount' => $request->Total_discount,
-                'amount' => $request->Total_amount,
-                'forwarder_fee' => $request->Forwarder_fee,
-                'net_amount' => $request->Net_amount,
-                'seller_id' => $request->Seller,
-                'sale_date' => $request->Sale_date,
-                'balance' => $request->Balance,
-            ]);
-            DB::table('Sales')
-              ->where('id',$id)
-              ->update(['id' => $id_update]);
+            DB::table('sale_records')->where('sale_id',$id_update)->delete();
+            DB::table('sales')
+              ->where('id',$id_update)
+              ->update([
+                        'customer_id' => $request->customer_id, //coming from ajax request
+                        'delivery_fee' => $request->delivery_fee,
+                        'discount' => $request->discount,
+                        'amount' => $request->amount,
+                        'net_amount' => $request->net_amount,
+                        'seller_id' => $request->seller_id,
+                        'sale_date' => $request->sale_date,
+                        'total_qty' => $request->total_qty,
+                        'cupon' => $request->cupon,
+                        'tax_vat' => $request->tax_vat
+                        ]);
             $id = $id_update;
             $message = "updated";
+            $redirect = true;
         }else{
             $id = DB::table('sales')->insertGetId([
                 'customer_id' => $request->customer_id, //coming from ajax request
@@ -53,10 +54,12 @@ class SaleController extends Controller
                 'net_amount' => $request->net_amount,
                 'seller_id' => $request->seller_id,
                 'sale_date' => $request->sale_date,
-                'total_qty' => $request->total_qty
+                'total_qty' => $request->total_qty,
+                'cupon' => $request->cupon,
+                'tax_vat' => $request->tax_vat
             ]);
             $message = "inserted";
-
+            $redirect = false;
         }
         
 
@@ -76,7 +79,8 @@ class SaleController extends Controller
         return response()->json(
             [
                 'success' => true,
-                'message' => 'Data '.$message.' successfully'
+                'message' => 'Data '.$message.' successfully',
+                'redirect' => $redirect
                 
             ]
         );
@@ -117,7 +121,8 @@ class SaleController extends Controller
                  'quantity' => $data['quantity'],
                  'unit_price' => $data['unit_price'],
                  'discount' => $data['discount'],
-                 'amount' => $data['amount']
+                 'amount' => $data['amount'],
+                 'cart_type' =>'sale'
              ]);
          }
 

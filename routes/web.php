@@ -45,9 +45,16 @@ Route::group(['prefix' => 'admin'], function () {
 
 // for sales
 Route::post('saleinsert', [SaleController::class, 'saveSale']);
-Route::post('poinsert', [PurchaseController::class, 'savePo']);
+Route::post('purchaseinsert', [PurchaseController::class, 'savePurchase']);
+
 Route::post('createcustomer', [SaleController::class, 'saveCustomer']);
+Route::post('createsupplier', [PurchaseController::class, 'saveSupplier']);
+Route::post('createproduct', [PurchaseController::class, 'saveProduct']);
+
 Route::post('holdsaleinsert', [SaleController::class, 'holdSale']);
 Route::post('holdsaledelete', [SaleController::class, 'deleteHoldSale']);
+
+Route::post('holdpurchaseinsert', [PurchaseController::class, 'holdPurchase']);
+Route::post('holdpurchasedelete', [PurchaseController::class, 'deleteHoldPurchase']);
 
 
