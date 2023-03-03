@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\PurchaseController;
 /*
 |--------------------------------------------------------------------------
@@ -19,16 +20,16 @@ Route::get('/', function () {
 });
 
 //for sales report
-Route::get('/reports/sales-report', function () {
+Route::get('/admin/reports/sales-report', function () {
     return view('vendor.voyager.reports.sales-report');
 });
-Route::post('get_sale_report', [SaleController::class, 'getSaleReport']);
+Route::post('get_sale_report', [ReportController::class, 'getSaleReport']);
 
 //for stocks report
-Route::get('/reports/stocks-report', function (){
+Route::get('/admin/reports/stocks-report', function (){
     return view('vendor.voyager.reports.stocks-report');
 });
-Route::post('get_stock_report', [SaleController::class, 'getStockReport']);
+Route::post('get_stock_report', [ReportController::class, 'getStockReport']);
 
 //for purchase report
 Route::get('/reports/purchases-report', function () {

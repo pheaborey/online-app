@@ -9,7 +9,7 @@
     $products = DB::table('Products')
                 ->join('product_stocks', 'products.id', '=', 'product_stocks.product_id')
                 ->join('products_types', 'products.product_type', '=', 'products_types.id')
-                ->select('products.id','product_code','product_name','product_image','sale_price','product_type')->get();
+                ->select('products.id','product_code','product_name','product_image','sale_price','cost','product_type')->get();
     $customers = DB::table('customers')->select('id','customer_name','address','contact')->get();
     $categories = DB::table('products_types')->select('id','type_name')->get();
     
@@ -48,7 +48,7 @@
     $menu = '';
     foreach ($products as $key=>$item){
         $option .= '<option value="'. $item->id .'">'. $item->product_name . '</option>';
-        $menu .='<div id="pro_id_'.$item->id.'" class="col-sm-2 btn id_pro" cate_id="'.$item->product_type.'" id_pro="'.$item->id.'" name_pro="'.$item->product_name.'" price_pro = "'.$item->sale_price.'">'.
+        $menu .='<div id="pro_id_'.$item->id.'" class="col-sm-2 btn id_pro" cate_id="'.$item->product_type.'" id_pro="'.$item->id.'" name_pro="'.$item->product_name.'"cost_pro = "'.$item->cost.'" price_pro = "'.$item->sale_price.'">'.
                     '<img src="'.$src_url.''.$item->product_image.'" style="width:100%;">'.
                     '<span class="caption">'.
                     '<p style="font-size:11px;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;text-align:center">'. $item->product_name . '</p>'.
@@ -543,6 +543,8 @@
         var pro_i = 1;
         var pro_list = [];
         var total_qty = 0;
+        var total_cost = 0;
+        var total_profit = 0;
         function remove_item(div_id){
             $('#div_row'+div_id).remove();
             pro_i -= 1;
@@ -629,6 +631,7 @@
             var id = $(this).attr('id_pro');
             var pro_name = $(this).attr('name_pro');
             var pro_price = $(this).attr('price_pro');
+            var pro_cost = $(this).attr('cost_pro');
             
             if (pro_i > 1){   
                 var condition='';
@@ -659,6 +662,8 @@
                                 '<a id="product_id'+id+'" style="text-decoration: none; white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" data-toggle="collapse" href="#collapse'+id+'" class="col-sm-6 pro_row">'+pro_name+'</a>'+   
                                 '<span class="col-sm-2 qty_row" id="qty'+id+'">1</span>'+
                                 '<span class="col-sm-2 amount_row" id="amount'+id+'">'+pro_price+'</span>'+
+                                '<span class="col-sm-2 cost_row" id="total_cost'+id+'" style="display:none">'+pro_cost+'</span>'+
+                                '<span class="col-sm-2 profit_row" id="total_profit'+id+'" style="display:none">'+((pro_price-0)-(pro_cost-0))+'</span>'+
                                 '<button onclick="remove_item('+id+')" id="remove'+id+'" class="glyphicon glyphicon-remove-sign"></button>'+
                                 '</div>'+
                                 '<div id="collapse'+id+'" class="panel-collapse collapse">'+
@@ -666,9 +671,10 @@
                                 '<span class="input-group-addon">Quantities</span>'+
                                 '<input id="quantity'+id+'" type="number" class="form-control qty" value="1" name="quantity">'+
                                 '<span class="input-group-addon">Sale price ($)</span>'+
-                                '<input id="sale_price'+id+'" type="number" class="form-control price" value="'+pro_price+'" disabled>'+
+                                '<input id="sale_price'+id+'" type="number" class="form-control price" value="'+pro_price+'" readonly>'+
                                 '<span class="input-group-addon">Discount (%) </span>'+
                                 '<input id="discount'+id+'" type="number" class="form-control discount" value="0" name="discount">'+
+                                '<input id="cost'+id+'" type="number" class="form-control cost hidden" value="'+pro_cost+'" readonly>'+
                                 '</div></div></div>');
                 pro_list.push(id);
                 pro_i +=1;
@@ -680,8 +686,13 @@
             $('.qty, .discount').on('input',function(){
                 // console.log(qty);
                 var get_id = (this.id).slice(8);
+                
+                var cost_id = '#cost'+get_id;
+                var cost = $(cost_id).val();
+
                 var price_id = '#sale_price'+get_id;
                 var price = $(price_id).val();
+
                 var dis_id = '#discount'+get_id;
                 
                 var total_price = 0;
@@ -692,6 +703,11 @@
                 $(qty_id).text(quantity);
                 
                 var total_price = (price * quantity) - discount;
+
+                
+                var total_cost = (quantity * cost);
+                var total_cost_id = '#total_cost'+get_id;
+                $(total_cost_id).text(total_cost);
                 var amount_id = '#amount'+get_id;
                 $(amount_id).text(total_price);
                 subtotal();
@@ -896,6 +912,12 @@
             $(".qty_row").filter(function() {
                 total_qty += ($(this).text()-0);
             });
+            $(".cost_row").filter(function() {
+                total_cost += ($(this).text()-0);
+            });
+            $(".profit_row").filter(function() {
+                total_profit += ($(this).text()-0);
+            });
             var subtotal = $('#subtotal').val();
             var discount = $('#discount').val();
             var cupon = $('#cupon').val();
@@ -910,6 +932,7 @@
                 var row = $(this);
                 var sr = {};
                 sr.product_id = row.find("a:eq(0)").attr('id').slice(10);
+                sr.cost = row.find("span:eq(3)").text();
                 sr.quantity = row.find("span:eq(1)").text();
                 sr.unit_price = row.find("input:eq(1)").val();
                 sr.discount = row.find("input:eq(2)").val();
@@ -954,6 +977,8 @@
                     cupon:$('#cupon').val(),
                     tax_vat:$('#tax_vat').val(),
                     net_amount:$('#grand_total').val(),
+                    total_cost:total_cost,
+                    total_profit:total_profit,
                     sale_record_arr:sale_records
                 },
             success:function(response){

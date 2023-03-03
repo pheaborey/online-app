@@ -40,7 +40,9 @@ class SaleController extends Controller
                         'sale_date' => $request->sale_date,
                         'total_qty' => $request->total_qty,
                         'cupon' => $request->cupon,
-                        'tax_vat' => $request->tax_vat
+                        'tax_vat' => $request->tax_vat,
+                        'total_cost' => $request->total_cost,
+                        'total_profit' => $request->total_profit
                         ]);
             $id = $id_update;
             $message = "updated";
@@ -56,7 +58,9 @@ class SaleController extends Controller
                 'sale_date' => $request->sale_date,
                 'total_qty' => $request->total_qty,
                 'cupon' => $request->cupon,
-                'tax_vat' => $request->tax_vat
+                'tax_vat' => $request->tax_vat,
+                'total_cost' => $request->total_cost,
+                'total_profit' => $request->total_profit
             ]);
             $message = "inserted";
             $redirect = false;
@@ -73,6 +77,7 @@ class SaleController extends Controller
                 'unit_price' => $data['unit_price'],
                 'discount' => $data['discount'],
                 'amount' => $data['amount'],
+                'cost' => $data['cost'],
             ]);
         }
        
@@ -134,27 +139,7 @@ class SaleController extends Controller
             ]
         );
     }
-    public function getSaleReport(Request $request)
-    {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-
-        $ad_expense = DB::table('advertisements')->select('ad_expense')->whereBetween('ad_date',[$start_date,$end_date])->sum('ad_expense');
-        $sales = DB::select("SELECT s.*,c.customer_address,SUM(sr.quantity) total_qty,SUM(ps.cost*sr.quantity) total_cost,s.net_amount - SUM((ps.cost*sr.quantity)) profit 
-            FROM Sale_records sr
-            JOIN Product_stocks ps ON sr.product_code=ps.product_code
-            JOIN Sales s ON s.id=sr.sale_code
-            JOIN customers c ON c.id=s.customer_code
-            WHERE s.sale_date BETWEEN '$start_date' AND '$end_date'
-            GROUP BY s.id");
-        return response()->json(
-            [
-                'success' => true,
-                'sales' => $sales,
-                'ad_expense' => $ad_expense,
-            ]
-        );
-    }
+    
     public function getPOReport(Request $request)
     {
         $start_date = $request->start_date;
@@ -174,33 +159,7 @@ class SaleController extends Controller
             ]
         );
     }
-    public function getStockReport(Request $request)
-    {
-        $report_type = $request->report_type;
-        $report_detail = $request->report_detail;
-        $select = "SELECT ps.product_code,p.product_name,ps.quantity,ps.cost,ps.sale_price FROM product_stocks ps JOIN Products p ON p.id=ps.product_code";
-        if($report_type == 'all'){
-            $stocks = DB::select(" $select ORDER BY ps.product_code ASC");
-        }elseif($report_type == 'by_product'){
-            if($report_detail != 'all_product'){
-                $stocks = DB::select(" $select WHERE p.id = '$report_detail' ");
-            }else{
-                $stocks = DB::select(" $select ORDER BY ps.product_code ASC");
-            }
-        }elseif($report_type == 'by_type'){
-            if($report_detail != 'all_type'){
-                $stocks = DB::select(" $select WHERE p.product_type = '$report_detail' ");
-            }else{
-                $stocks = DB::select(" $select ORDER BY ps.product_code ASC");
-            }
-        }
-        return response()->json(
-            [
-                'success' => true,
-                'stocks' => $stocks,
-            ]
-        );
-    }
+    
     // public function return_stock(Request $request)
     // {
     //     $status = $request->status;
@@ -239,3 +198,4 @@ class SaleController extends Controller
     //     );
     // }
 }
+?>

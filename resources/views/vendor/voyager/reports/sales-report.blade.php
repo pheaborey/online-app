@@ -38,11 +38,13 @@
                                 <tr>
                                     <th>Sale_No.</th>
                                     <th>Sale_Date</th>
-                                    <th>Address</th>
+                                    <th>Customer Info</th>
+                                    <th>Seller</th>
                                     <th>Total_QTY</th>
-                                    <th>Cost_Amount</th>
                                     <th>Sale_Amount</th>
+                                    <th>Delivery_Fee</th>
                                     <th>Net_Amount</th>
+                                    <th>Total_Cost</th>
                                     <th>Profit/Lost</th>
                                 </tr>
                             </thead>
@@ -113,6 +115,7 @@
                 }else if(condition == 'last_seven_day'){
                     start_date = new Date(year, month-1, day-7).toISOString().split('T')[0];
                     end_date = new Date(year, month-1, day).toISOString().split('T')[0];
+                    
                 }else if(condition == 'yesterday'){
                     start_date = new Date(year, month-1, day).toISOString().split('T')[0];
                     end_date = new Date(year, month-1, day).toISOString().split('T')[0];
@@ -140,27 +143,29 @@
                         end_date:date2
                     },
                 success:function(response){
-                    //console.log(response.ad_expense);
+                    // console.log(response.sales);
                     if(response.sales.length>0){
                         var tr ='';
                         var sum_qty = 0,sum_cost=0,sum_sale=0,sum_net=0,sum_ad=0,sum_profit=0;
                         response.sales.forEach(sale_data => {
-                            tr += (sale_data['status']>0 ? "<tr>" : "<tr style='color:red'>")+
+                            tr +="<tr>"+
                                     "<td>"+sale_data['id'] +"</td>"+
                                     "<td>"+sale_data['sale_date']+"</td>"+
-                                    "<td>"+sale_data['customer_address']+"</td>"+
-                                    "<td>"+sale_data['total_qty']+"</td>"+
+                                    "<td>"+sale_data['customer_name']+'-'+sale_data['address']+'-'+sale_data['contact']+"</td>"+
+                                    "<td>"+sale_data['name']+"</td>"+
+                                    "<td>"+sale_data['total_qty']+"</td>"+ 
+                                    "<td>"+formatter.format(sale_data['amount'])+"</td>"+
+                                    "<td>"+formatter.format(sale_data['delivery_fee'])+"</td>"+
+                                    "<td>"+formatter.format(sale_data['net_amount'])+"</td>"+
                                     "<td>"+formatter.format(sale_data['total_cost'])+"</td>"+
-                                    "<td>"+formatter.format(sale_data['total_amount'])+"</td>"+
-                                    (sale_data['status']<0 ? "<td style='color:red'>"+formatter.format(sale_data['net_amount'])+"</td>" : "<td>"+formatter.format(sale_data['net_amount'])+"</td>")+
                                     (sale_data['profit']<0 ? "<td style='color:red'>" +formatter.format(sale_data['profit']) + "</td>" : "<td>"+formatter.format(sale_data['profit'])+"</td>")+
-                                    "<td data-tableexport-display='none'><a href='../admin/sales/"+sale_data['id']+"' target='_blank' class='btn-xs btn-info'> <span class='voyager-eye'></span> View</a></td>"+
+                                    "<td data-tableexport-display='none'><a href='../sales/"+sale_data['id']+"' target='_blank' class='btn-xs btn-info'> <span class='voyager-eye'></span> View</a></td>"+
                                     "</tr>";
-                            sum_qty += (sale_data['status']>0 ? (sale_data['total_qty']-0) : 0);
-                            sum_cost += (sale_data['status']>0 ? (sale_data['total_cost']-0) : 0);
-                            sum_sale += (sale_data['status']>0 ? (sale_data['total_amount']-0) : 0);
-                            sum_net += (sale_data['status']>0 ? (sale_data['net_amount']-0) : 0);
-                            sum_profit += (sale_data['status']>0 ? (sale_data['profit']-0) : 0);
+                            sum_qty += (sale_data['total_qty']>0 ? (sale_data['total_qty']-0) : 0);
+                            sum_cost += (sale_data['total_cost']>0 ? (sale_data['total_cost']-0) : 0);
+                            sum_sale += (sale_data['amount']>0 ? (sale_data['amount']-0) : 0);
+                            sum_net += (sale_data['net_amount']>0 ? (sale_data['net_amount']-0) : 0);
+                            sum_profit += (sale_data['profit']>0 ? (sale_data['profit']-0) : 0);
                         });
                         sum_ad = response.ad_expense;
                         $('#sale_data').empty().append(tr);

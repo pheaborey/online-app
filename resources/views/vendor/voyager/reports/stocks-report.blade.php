@@ -28,7 +28,7 @@
         <select id="product_type" class="selectpicker" data-live-search="true">
             <option value="all_type">All Product Types</option>
             @php
-                $types_option = DB::table('product_types')->select('id','type_name')->get();
+                $types_option = DB::table('products_types')->select('id','type_name')->get();
                 foreach ($types_option as $key => $value) {
                     echo '<option value="'.$value->id.'">'.$value->id.'-'.$value->type_name.'</option>';
                 }
@@ -114,6 +114,7 @@
         })
         function get_stock_report(report_type,report_detail) {
             var url = '{{ url('get_stock_report') }}';
+            // console.log(url);
             $.ajax({
             url:url,
             method:'POST',
@@ -130,14 +131,14 @@
                         tr +="<tr>"+
                                 "<td>"+stock_data['product_code']+"</td>"+
                                 "<td>"+stock_data['product_name']+"</td>"+
-                                "<td>"+stock_data['quantity']+"</td>"+
+                                "<td>"+stock_data['total_qty']+"</td>"+
                                 "<td>"+formatter.format(stock_data['cost'])+"</td>"+
                                 "<td>"+formatter.format(stock_data['sale_price'])+"</td>"+
-                                "<td data-tableexport-display='none'><a href='../admin/product-stocks/"+stock_data['product_code']+"' target='_blank' class='btn-xs btn-info'> <span class='voyager-eye'></span> View</a></td>"+
+                                "<td data-tableexport-display='none'><a href='{{url('admin/product-stocks')}}/"+stock_data['id']+"' target='_blank' class='btn-xs btn-info'> <span class='voyager-eye'></span> View</a></td>"+
                                 "</tr>";
-                        sum_qty += (stock_data['quantity']-0);
-                        sum_cost += ((stock_data['cost']-0)*(stock_data['quantity']-0));
-                        sum_price += ((stock_data['sale_price']-0)*(stock_data['quantity']-0));
+                        sum_qty += (stock_data['total_qty']-0);
+                        sum_cost += ((stock_data['cost']-0)*(stock_data['total_qty']-0));
+                        sum_price += ((stock_data['sale_price']-0)*(stock_data['total_qty']-0));
                     });
                     $('#stock_data').empty().append(tr);
                     // $('#dataTable').DataTable();
