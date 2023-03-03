@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Requests;
+use App\Models\ProductStock;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,7 @@ class PurchaseController extends Controller
         $host = explode('/Purchases',$values['path']);//cut end
         $redirect = $host[0];
 
-        $id_update = $request->Id_update;
+        $id_update = $request->id_update;
         if($id_update > 0){
             DB::table('purchase_records')->where('purchase_id',$id_update)->delete();
             $id = DB::table('purchases')
@@ -59,10 +60,10 @@ class PurchaseController extends Controller
             $redirect = false;
 
         }
-        
 
         //insert purchase_records
         $purchase_records = $request->purchase_record_arr;//coming from ajax request
+        
         foreach($purchase_records as $k => $data){
             DB::table('purchase_records')->insert([
                 'purchase_id' => $id, 
@@ -72,6 +73,25 @@ class PurchaseController extends Controller
                 'sale_price' => $data['sale_price'],
                 'cost_amount' => $data['amount'],
             ]);
+
+            //product stock
+            $pro_id_stock = DB::table('product_stocks')->where('product_id',$data['product_id'])->select('product_id')->first();
+            $current_qty = ($data['quantity']-0);
+            if(is_null($pro_id_stock)){
+                DB::table('product_stocks')->insert([
+                    'product_id' => $data['product_id'],
+                    'cost' => $data['cost'],
+                    'sale_price' => $data['sale_price'],
+                    'total_qty' => $data['quantity']
+                ]);
+            }else{
+                $stock_qty = DB::table('product_stocks')->select('total_qty')->where('product_id',$data['product_id'])->first()->total_qty;
+                DB::table('product_stocks')->where('product_id',$data['product_id'])
+                ->update([
+                    'cost' => $data['cost'],
+                    'total_qty' => ($stock_qty + $current_qty)
+                ]);
+            }
         }
 
         return response()->json(

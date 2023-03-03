@@ -5,7 +5,7 @@
     $rate_visa = DB::table('currencies')->select('rate','symbol')->where('short_name','VCF')->first();
     $rate_tax = DB::table('currencies')->select('rate','symbol')->where('short_name','VAT')->first();
 
-    $hold_cart = DB::table('hold_carts')->select('created_at')->groupBy('created_at')->get();
+    $hold_cart = DB::table('hold_carts')->where('cart_type','purchase')->select('created_at')->groupBy('created_at')->get();
     $products = DB::table('Products')
                 // ->join('product_stocks', 'products.id', '=', 'product_stocks.product_id')
                 ->join('products_types', 'products.product_type', '=', 'products_types.id')
@@ -36,7 +36,7 @@
         $values = parse_url($url);
         $host = explode('/edit',$values['path']);//cut end
         $host2 = explode('purchases',$values['path']);//cut begin
-        $edit = substr($host[0],(strlen($host2[0])+10));//select only sales id
+        $edit = substr($host[0],(strlen($host2[0])+10));//select only purchase id
         $purchase = DB::table('purchases')->select('*')->where('id',$edit)->get();
         $purchase_record = DB::table('purchase_records')
                         ->select('purchase_id','product_id','quantity','sale_price','cost','cost_amount','created_at')
@@ -655,8 +655,8 @@
                                 '<input id="quantity'+id+'" type="number" class="form-control qty" value="1" name="quantity">'+
                                 '<span class="input-group-addon">Cost</span>'+
                                 '<input id="cost'+id+'" type="number" class="form-control cost" value="0" name="cost">'+
-                                '<span class="input-group-addon">Sale price</span>'+
-                                '<input id="sale_price'+id+'" type="number" class="form-control price" placeholder="Blank is OK">'+
+                                '<span class="input-group-addon" style="display:none">Sale price</span>'+
+                                '<input id="sale_price'+id+'" type="number" class="form-control price" placeholder="Blank is OK" style="display:none">'+
                                 '</div></div></div>');
                 pro_list.push(id);
                 pro_i +=1;
@@ -666,15 +666,22 @@
                 return result == id;
             }
             $('.qty, .cost').on('input',function(){
-                // console.log(qty);
-                var get_id = (this.id).slice(this.id.length-1);
+                var id_len = 0;
+                if(this.id.length>=8){
+                    id_len = 8;
+                }else{
+                    id_len = 4;
+                }
+                
+                var get_id = (this.id).slice(id_len);
                 var cost_id = '#cost'+get_id;
                 var cost = $(cost_id).val();
+                // console.log(get_id);
                 // var dis_id = '#discount'+get_id;
                 
                 var total_price = 0;
                 var quantity_id = '#quantity'+get_id;
-                var quantity = $(quantity_id).val();
+                var quantity = $(quantity_id).val()-0;
                 // var discount = ($(dis_id).val()/100) * (price * quantity);
                 var qty_id = '#qty'+get_id;
                 $(qty_id).text((quantity-0).toFixed(0));
@@ -765,7 +772,7 @@
         $('#add_to_cart').on('click', function(){
             $('#modal-hold-cart').modal('hide');
             var cart_select = $('#select-hold-cart').val();
-            var cart_list = @php $cart = DB::table('hold_carts')->where('cart_type','purchase')->select('product_id','unit_price','cost','quantity','amount','created_at')->get(); echo $cart @endphp;
+            var cart_list = @php $cart = DB::table('hold_carts')->select('product_id','unit_price','cost','quantity','amount','created_at')->get(); echo $cart @endphp;
             var new_cart_list = cart_list.filter(function(cart_list){ return (cart_list.created_at==cart_select);});
             
             $.each(new_cart_list, function( index, value ) {
@@ -882,8 +889,8 @@
                 var sr = {};
                 sr.product_id = row.find("a:eq(0)").attr('id').slice(10);
                 sr.quantity = row.find("span:eq(1)").text();
-                sr.sale_price = row.find("input:eq(1)").val();
-                sr.cost = row.find("input:eq(2)").val();
+                sr.sale_price = row.find("input:eq(2)").val();
+                sr.cost = row.find("input:eq(1)").val();
                 sr.amount = row.find("span:eq(2)").text();
                 purchase_records.push(sr); 
                 $('.tbody_record_print').append(
@@ -983,6 +990,7 @@
                     var span_amount = '#amount'+value['product_id'];
                     $(span_amount).text(value['amount']);
                 });
+                console.log(edit_id);
             }
             subtotal();
         });

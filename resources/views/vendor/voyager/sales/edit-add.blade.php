@@ -5,7 +5,7 @@
     $rate_kh = DB::table('currencies')->select('rate','symbol')->where('id','1')->first();
     $rate_tax = DB::table('currencies')->select('rate','symbol')->where('short_name','VAT')->first();
 
-    $hold_cart = DB::table('hold_carts')->select('created_at')->groupBy('created_at')->get();
+    $hold_cart = DB::table('hold_carts')->where('cart_type','sale')->select('created_at')->groupBy('created_at')->get();
     $products = DB::table('Products')
                 ->join('product_stocks', 'products.id', '=', 'product_stocks.product_id')
                 ->join('products_types', 'products.product_type', '=', 'products_types.id')
@@ -767,7 +767,7 @@
         $('#add_to_cart').on('click', function(){
             $('#modal-hold-cart').modal('hide');
             var cart_select = $('#select-hold-cart').val();
-            var cart_list = @php $cart = DB::table('hold_carts')->where('cart_type','sale')->select('product_id','unit_price','quantity','discount','amount','created_at')->get(); echo $cart @endphp;
+            var cart_list = @php $cart = DB::table('hold_carts')->select('product_id','unit_price','quantity','discount','amount','created_at')->get(); echo $cart @endphp;
             var new_cart_list = cart_list.filter(function(cart_list){ return (cart_list.created_at==cart_select);});
             
             $.each(new_cart_list, function( index, value ) {

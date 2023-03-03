@@ -75,6 +75,7 @@ class SaleController extends Controller
                 'amount' => $data['amount'],
             ]);
         }
+       
 
         return response()->json(
             [
